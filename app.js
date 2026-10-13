@@ -906,16 +906,35 @@
   // Ohne File System Access (Firefox, Safari): „Speichern“ lädt die Plan-Datei herunter, „Öffnen“ liest eine ausgewählte Datei.
   // S.dateiName / S.dateiGespeichert (Zeitstempel des gespeicherten Stands) merken, ob es Ungespeichertes gibt.
   const fbUngespeichert = () => !!S.geaendert && S.geaendert !== S.dateiGespeichert;
-  function fbSpeichern() {
-    if (!S.geaendert) S.geaendert = new Date().toISOString();
-    const name = S.dateiName || 'Masterplan.json', a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(planDaten(), null, 2)], { type: 'application/json' }));
-    a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  // Handy/Tablet: Teilen-Menü statt Download (→ „In Drive speichern“ bzw. „In Dateien sichern“)
+  const MOBIL = typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && matchMedia('(pointer: coarse)').matches;
+  function teilDatei(name, txt) {
+    // Manche Browser teilen nur bestimmte Dateitypen: erst JSON, dann als Text mit .json, zuletzt .json.txt
+    const versuche = [[name, 'application/json'], [name, 'text/plain'], [name.replace(/(.txt)?$/, '.txt'), 'text/plain']];
+    for (const [n, typ] of versuche) { const f = new File([txt], n, { type: typ }); try { if (navigator.canShare({ files: [f] })) return f; } catch (e) {} }
+    return null;
+  }
+  function fbGespeichert(name) {
     Object.assign(S, { dateiName: name, dateiGespeichert: S.geaendert, dateiZeit: new Date().toISOString() });
     D_.frage = false; save(); dateiRender();
   }
+  function fbSpeichern() {
+    if (!S.geaendert) S.geaendert = new Date().toISOString();
+    const name = S.dateiName || 'Masterplan.json', txt = JSON.stringify(planDaten(), null, 2);
+    const download = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+      a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      fbGespeichert(name);
+    };
+    const f = MOBIL && teilDatei(name, txt);
+    if (!f) return download();
+    navigator.share({ files: [f], title: 'Plan-Datei' })
+      .then(() => { fbGespeichert(name); flashMsg('Plan-Datei geteilt. Wenn du „In Drive speichern“ gewählt hast, liegt sie jetzt in Google Drive.'); })
+      .catch(e => { if (e && e.name === 'AbortError') flashMsg('Nicht gespeichert (Teilen abgebrochen).'); else download(); });
+  }
   const fbInput = document.createElement('input');
-  fbInput.type = 'file'; fbInput.accept = 'application/json,.json'; fbInput.hidden = true; document.body.appendChild(fbInput);
+  fbInput.type = 'file'; fbInput.accept = 'application/json,.json,text/plain,.txt'; fbInput.hidden = true; document.body.appendChild(fbInput);
   fbInput.addEventListener('change', async () => {
     const file = fbInput.files[0]; fbInput.value = ''; if (!file) return;
     try {
@@ -934,7 +953,7 @@
       await dateiVerbinden(h, 'neu');
     }),
     oeffnen: () => dTask(async () => {
-      const [h] = await window.showOpenFilePicker({ types: [{ description: 'Plan-Datei', accept: { 'application/json': ['.json'] } }] });
+      const [h] = await window.showOpenFilePicker({ types: [{ description: 'Plan-Datei', accept: { 'application/json': ['.json'], 'text/plain': ['.txt'] } }] });
       if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw Object.assign(new Error(), { name: 'NotAllowedError' });
       await dateiVerbinden(h, 'oeffnen');
     }),
@@ -960,9 +979,10 @@
       : S.dateiName ? ['ok', `💾 ${name} · gespeichert ${uhr(S.dateiZeit)}`, 'Alles gespeichert'] : ['', '📄 Keine Plan-Datei', 'Plan-Datei speichern oder öffnen'];
     chip.className = 'datei-chip ' + st[0]; chip.textContent = st[1]; chip.title = st[2];
     const m = $('datei-menu'); m.hidden = !D_.menu;
-    if (D_.menu) m.innerHTML = '<p>Dieser Browser kann nicht selbst in eine Datei schreiben. <b>Speichern</b> (auch Strg+S) lädt die Plan-Datei herunter, <b>Öffnen</b> lädt sie wieder.</p>' +
-      `<button class="btn primary" data-datei="speichern">Speichern${uns ? '' : ' (aktuell)'} · Strg+S</button><button class="btn" data-datei="oeffnen">Plan-Datei öffnen…</button>` +
-      '<p>Tipp für Firefox: Einstellungen → Allgemein → Dateien und Anwendungen → „Jedes Mal nachfragen, wo Dateien gespeichert werden sollen“. Dann kannst du immer dieselbe Datei (z. B. in OneDrive) überschreiben, statt dass im Download-Ordner Masterplan(1).json entsteht.</p>';
+    if (D_.menu) m.innerHTML = (MOBIL ? '<p><b>Speichern</b> öffnet das Teilen-Menü: Wähle „In Drive speichern“ (Android) bzw. „In Dateien sichern“ → Google Drive (iPhone). <b>Öffnen</b> lädt die Plan-Datei wieder, z. B. aus Google Drive. Nimm dabei die neueste Datei.</p>'
+        : '<p>Dieser Browser kann nicht selbst in eine Datei schreiben. <b>Speichern</b> (auch Strg+S) lädt die Plan-Datei herunter, <b>Öffnen</b> lädt sie wieder.</p>') +
+      `<button class="btn primary" data-datei="speichern">Speichern${uns ? '' : ' (aktuell)'}${MOBIL ? '' : ' · Strg+S'}</button><button class="btn" data-datei="oeffnen">Plan-Datei öffnen…</button>` +
+      (MOBIL ? '' : '<p>Tipp für Firefox: Einstellungen → Allgemein → Dateien und Anwendungen → „Jedes Mal nachfragen, wo Dateien gespeichert werden sollen“. Dann kannst du immer dieselbe Datei (z. B. in OneDrive) überschreiben, statt dass im Download-Ordner Masterplan(1).json entsteht.</p>');
     $('datei-box').innerHTML = D_.frage ? `<div class="warnbox"><b>Ungespeicherte Änderungen.</b> Wenn du jetzt eine Plan-Datei öffnest, gehen deine Änderungen seit dem letzten Speichern verloren.
       <div class="row"><button class="btn primary" data-datei="speichern">Erst speichern</button><button class="btn" data-datei="oeffnen-trotzdem">Verwerfen und öffnen…</button><button class="btn" data-datei="abbrechen">Abbrechen</button></div></div>` : '';
   }
@@ -1024,7 +1044,8 @@
   } else {
     const [bs, bo] = document.querySelectorAll('.datei-nur');
     bs.dataset.datei = 'speichern'; bs.textContent = 'Plan-Datei speichern (Strg+S)'; bs.hidden = false; bo.hidden = false;
-    $('daten-hint').textContent = 'Dieser Browser kann nicht automatisch in eine Datei speichern. „Plan-Datei speichern“ (oder Strg+S) lädt deinen Plan als Datei herunter, „Plan-Datei öffnen…“ lädt ihn wieder, z. B. in einem anderen Browser oder auf einem anderen PC. Wer mit einer Plan-Datei arbeitet, wird beim Schließen an ungespeicherte Änderungen erinnert. Automatisch speichern können Chrome und Edge.';
+    if (MOBIL) { bs.textContent = 'Plan-Datei speichern (Teilen)'; $('daten-hint').textContent = 'Am Handy: „Plan-Datei speichern“ öffnet das Teilen-Menü. Wähle dort „In Drive speichern“ bzw. „In Dateien sichern“ → Google Drive. „Plan-Datei öffnen…“ lädt sie wieder, z. B. aus Google Drive. Am Laptop holst du die Handy-Änderungen mit „Plan-Datei öffnen…“ und der neuesten Datei.'; }
+    else $('daten-hint').textContent = 'Dieser Browser kann nicht automatisch in eine Datei speichern. „Plan-Datei speichern“ (oder Strg+S) lädt deinen Plan als Datei herunter, „Plan-Datei öffnen…“ lädt ihn wieder, z. B. in einem anderen Browser oder auf einem anderen PC. Wer mit einer Plan-Datei arbeitet, wird beim Schließen an ungespeicherte Änderungen erinnert. Automatisch speichern können Chrome und Edge.';
     // Schließen mit ungespeicherten Änderungen: Browser fragt nach (ein Download beim Schließen wird von Browsern blockiert)
     window.addEventListener('beforeunload', e => { if (S.dateiName && fbUngespeichert()) { e.preventDefault(); e.returnValue = ''; } });
     dateiRender();

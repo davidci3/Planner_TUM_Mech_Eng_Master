@@ -32,6 +32,11 @@ Diese Browser erlauben Webseiten nicht, eine Datei auf dem PC zu überschreiben.
 
 **Wer darf den Code ändern?** Nur der Repo-Besitzer und ausdrücklich eingeladene Collaborators. Andere können den Code ansehen, für sich kopieren (Fork) oder Änderungen per Pull Request *vorschlagen*. Übernommen wird davon nichts ohne Zustimmung des Besitzers.
 
+### Am Handy: Plan-Datei in Google Drive
+- **„Speichern“** öffnet am Handy das Teilen-Menü statt eines Downloads. Dort wählst du **„In Drive speichern“** (Android) bzw. **„In Dateien sichern“ → Google Drive** (iPhone).
+- **„Plan-Datei öffnen…“** lädt die Datei wieder, z. B. direkt aus Google Drive. Nimm dabei die neueste Datei.
+- Drive legt beim Speichern vom Handy meist eine **neue** Datei an, auch bei gleichem Namen. Damit der Laptop die Handy-Änderungen bekommt, dort einmal **„Plan-Datei öffnen…“** und die neueste Datei aus dem Drive-Ordner wählen. Ab dann speichert der Laptop wie gewohnt automatisch in diese Datei.
+
 ### Einmalige Einrichtung (für den Repo-Besitzer)
 1. *Settings → Pages*: Source „Deploy from a branch“, Branch `main`, Ordner `/ (root)`.
 2. *Settings → Actions → General → Workflow permissions*: „Read and write permissions“, damit die Action die neuen Daten committen darf.
