@@ -63,7 +63,8 @@
   }
   if (!Array.isArray(S.fokus2)) S.fokus2 = [];
   for (const k of ['semAuswahl', 'semAusgeblendet', 'semSnap', 'kursWahl', 'kursAus', 'praesenz']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  let nachAenderung = null; // Plan-Datei: Zeitstempel setzen und Autospeichern anstoßen (wird unten belegt)
+  const save = () => { if (nachAenderung) nachAenderung(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
   if (planErsetzt.length || planEntfernt.length) save(); // Umstellung sofort sichern
   const C = () => S.cfg;
 
@@ -74,11 +75,14 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const recoSet = () => new Set(S.profil != null && D.profile[S.profil] ? D.profile[S.profil].module : []);
   const tumUrl = id => `https://campus.tum.de/tumonline/ee/ui/ca2/app/desktop/#/slc.cm.reg/student/modules/detail/light/${id}/study-year/1623`;
+  const FS_OK = typeof window.showSaveFilePicker === 'function' && typeof window.showOpenFilePicker === 'function' && 'indexedDB' in window;
 
   $('sub').textContent = `${D.spo} · ${D.module.length} Module · Datenstand ${new Date(D.stand).toLocaleDateString('de-DE')} (öffentlicher TUMonline-Studienplan)`;
   $('footer').innerHTML = 'Quellen: ' + D.quellen.map(q => `<a href="${esc(q.url)}" target="_blank" rel="noopener">${esc(q.name)}</a>`).join(' · ') +
     '. Voraussetzungen wurden automatisch aus den Modulbeschreibungen erkannt. Ohne Gewähr: Verbindlich sind TUMonline und die FPSO.' +
-    '<br>Dein Plan wird nur in diesem Browser gespeichert. Niemand sonst sieht oder verändert ihn. Zum Sichern oder für ein anderes Gerät: „Mein Plan“ → Export/Import.';
+    '<br>Dein Plan gehört nur dir: Niemand sonst sieht oder verändert ihn. ' + (FS_OK
+      ? 'Ohne Plan-Datei liegt er nur in diesem Browser. Mit einer Plan-Datei (Knopf neben den Tabs, z. B. in OneDrive) wird jede Änderung automatisch in die Datei gespeichert: gleicher Stand in jedem Browser und auf jedem PC, und nichts geht beim Löschen der Browserdaten verloren.'
+      : 'Er liegt nur in diesem Browser. Zum Sichern oder für ein anderes Gerät: „Mein Plan“ → Export/Import. Eine automatisch gespeicherte Plan-Datei gibt es in Chrome und Edge.');
 
   // ---------- Semester ----------
   function semInfo(i) {
@@ -711,34 +715,206 @@
   $('plan-warn').addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) setTab(g.dataset.goto); });
   $('regen').addEventListener('click', () => { const miss = generate(); renderPlan(); renderPlanCount(); miss.forEach(flashMsg); });
   $('to-wizard').addEventListener('click', () => setTab('wizard'));
+  // Plan als JSON (Export und Plan-Datei); planInhalt() ohne Zeitstempel zum Vergleichen
+  const planDaten = () => ({ format: 'mw-masterplan', version: 1, geaendert: S.geaendert || null, exportiert: new Date().toISOString(),
+    fokus: S.fokus, fokus2: S.fokus2, cfg: S.cfg,
+    semester: { auswahl: Object.keys(S.semAuswahl), ausgeblendet: Object.keys(S.semAusgeblendet), kursWahl: S.kursWahl, kursAus: S.kursAus, praesenz: S.praesenz },
+    plan: entries().map(([id, e]) => ({ id, kennung: M[id].kennung, titel: M[id].titel, ects: M[id].ects, bereich: e.b, semester: e.sem, status: e.st, gesperrt: e.lock })) });
+  const planInhalt = () => { const { geaendert, exportiert, ...r } = planDaten(); return JSON.stringify(r); };
+  // Liest eine Export- oder Plan-Datei und liefert die zu übernehmenden Felder von S (wirft bei ungültigem Format)
+  function planAusJson(j) {
+    if (!j || typeof j !== 'object' || !Array.isArray(j.plan)) throw new Error('Keine Plan-Datei');
+    const p = { plan: {} };
+    for (const x of j.plan) if (M[x.id] && M[x.id].bereiche.includes(x.bereich))
+      p.plan[x.id] = { b: x.bereich, sem: x.semester ?? null, st: ST[x.status] ? x.status : 'geplant', lock: !!x.gesperrt };
+    if (Array.isArray(j.fokus)) p.fokus = j.fokus.filter(f => F[f]);
+    if (Array.isArray(j.fokus2)) p.fokus2 = j.fokus2.filter(f => F[f]);
+    if (j.cfg) p.cfg = { ...defCfg(), ...j.cfg };
+    if (j.semester) {
+      p.semAuswahl = Object.fromEntries((j.semester.auswahl || []).filter(id => M[id]).map(id => [id, {}]));
+      p.semAusgeblendet = Object.fromEntries((j.semester.ausgeblendet || []).filter(id => M[id]).map(id => [id, true]));
+      for (const k of ['kursWahl', 'kursAus', 'praesenz']) p[k] = j.semester[k] && typeof j.semester[k] === 'object' ? j.semester[k] : {};
+    }
+    return p;
+  }
+  const inhaltMit = p => { const alt = S; S = { ...S, ...p }; try { return planInhalt(); } finally { S = alt; } };
   $('export').addEventListener('click', () => {
-    const out = { exportiert: new Date().toISOString(), fokus: S.fokus, fokus2: S.fokus2, cfg: S.cfg,
-      semester: { auswahl: Object.keys(S.semAuswahl), ausgeblendet: Object.keys(S.semAusgeblendet), kursWahl: S.kursWahl, kursAus: S.kursAus, praesenz: S.praesenz },
-      plan: entries().map(([id, e]) => ({ id, kennung: M[id].kennung, titel: M[id].titel, ects: M[id].ects, bereich: e.b, semester: e.sem, status: e.st, gesperrt: e.lock })) };
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(planDaten(), null, 2)], { type: 'application/json' }));
     a.download = 'mw-masterplan.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
   $('import').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
-    try {
-      const j = JSON.parse(await file.text()), plan = {};
-      for (const p of j.plan || []) if (M[p.id] && M[p.id].bereiche.includes(p.bereich))
-        plan[p.id] = { b: p.bereich, sem: p.semester ?? null, st: ST[p.status] ? p.status : 'geplant', lock: !!p.gesperrt };
-      S.plan = plan;
-      if (Array.isArray(j.fokus)) S.fokus = j.fokus.filter(f => F[f]);
-      if (Array.isArray(j.fokus2)) S.fokus2 = j.fokus2.filter(f => F[f]);
-      if (j.cfg) S.cfg = { ...defCfg(), ...j.cfg };
-      if (j.semester) {
-        S.semAuswahl = Object.fromEntries((j.semester.auswahl || []).filter(id => M[id]).map(id => [id, {}]));
-        S.semAusgeblendet = Object.fromEntries((j.semester.ausgeblendet || []).filter(id => M[id]).map(id => [id, true]));
-        for (const k of ['kursWahl', 'kursAus', 'praesenz']) S[k] = j.semester[k] && typeof j.semester[k] === 'object' ? j.semester[k] : {};
-      }
-      save(); renderAll();
-    } catch (err) { flashMsg('Datei konnte nicht gelesen werden.'); }
+    try { Object.assign(S, planAusJson(JSON.parse(await file.text()))); save(); renderAll(); }
+    catch (err) { flashMsg('Datei konnte nicht gelesen werden.'); }
     e.target.value = '';
   });
   $('clear').addEventListener('click', () => { for (const [id, e] of entries()) if (e.st === 'geplant') delete S.plan[id]; save(); renderAll(); });
+
+  // ---------- Plan-Datei (File System Access API, Chrome/Edge) ----------
+  // Die verbundene Datei ist der maßgebliche Stand: Jede Plan-Änderung wird nach kurzer Pause hineingeschrieben,
+  // beim Öffnen wird sie geladen. Das Datei-Handle bleibt in IndexedDB gespeichert. localStorage ist nur Zwischenspeicher.
+  const D_ = { h: null, status: 'aus', inhalt: null, stand: null, mod: 0, zuletzt: null, fehler: '', konflikt: null, menu: false };
+  let letzterInhalt = planInhalt(), dTimer = null, dQueue = Promise.resolve();
+  nachAenderung = () => {
+    const i = planInhalt(); if (i === letzterInhalt) return;
+    letzterInhalt = i; S.geaendert = new Date().toISOString();
+    dateiPlanen();
+  };
+  const dTask = fn => (dQueue = dQueue.then(fn).catch(e => dFehler(e)));
+  const fmtZeit = iso => iso ? new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : 'unbekannt';
+  function idb(mode, fn) {
+    return new Promise((ok, fail) => {
+      const r = indexedDB.open('mw-faecheruebersicht', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('datei');
+      r.onerror = () => fail(r.error);
+      r.onsuccess = () => {
+        const db = r.result, tx = db.transaction('datei', mode), q = fn(tx.objectStore('datei'));
+        tx.oncomplete = () => { db.close(); ok(q.result); };
+        tx.onerror = tx.onabort = () => { db.close(); fail(tx.error); };
+      };
+    });
+  }
+  const handleMerken = h => idb('readwrite', st => h ? st.put(h, 'plan') : st.delete('plan')).catch(() => {});
+  function dFehler(e) {
+    if (e && e.name === 'AbortError') return; // Dateiauswahl abgebrochen
+    D_.status = 'fehler';
+    D_.fehler = e && e.name === 'NotFoundError' ? 'Die Datei wurde verschoben, umbenannt oder gelöscht.'
+      : e && e.name === 'NotAllowedError' ? 'Der Browser hat den Zugriff auf die Datei nicht erlaubt.'
+      : e && (e.message === 'Keine Plan-Datei' || e.name === 'SyntaxError') ? 'Die Datei ist keine Plan-Datei dieser App.'
+      : (e && e.message) || 'Unbekannter Fehler.';
+    dateiRender();
+  }
+  async function dateiLesen() {
+    const f = await D_.h.getFile(), txt = await f.text();
+    return { f, j: txt.trim() ? JSON.parse(txt) : null };
+  }
+  async function dateiSchreiben() {
+    if (!S.geaendert) { S.geaendert = new Date().toISOString(); save(); }
+    const i = planInhalt();
+    D_.status = 'speichert'; dateiRender();
+    const w = await D_.h.createWritable();
+    await w.write(JSON.stringify(planDaten(), null, 2)); await w.close();
+    D_.mod = (await D_.h.getFile()).lastModified; D_.inhalt = i; D_.stand = S.geaendert;
+    D_.zuletzt = new Date(); D_.status = 'ok'; D_.konflikt = null; dateiRender();
+  }
+  function dateiUebernehmen(j, f) {
+    Object.assign(S, planAusJson(j));
+    S.geaendert = j.geaendert || new Date(f.lastModified).toISOString();
+    letzterInhalt = planInhalt(); save();
+    D_.inhalt = letzterInhalt; D_.stand = j.geaendert || null; D_.mod = f.lastModified;
+    D_.zuletzt = new Date(f.lastModified); D_.status = 'ok'; D_.konflikt = null;
+    renderAll(); dateiRender();
+  }
+  // Abgleich nach dem Verbinden: gleicher Inhalt → nichts tun; Datei neuer → laden; Browser neuer → nachfragen
+  async function dateiAbgleich() {
+    const { f, j } = await dateiLesen();
+    if (!j) return dateiSchreiben(); // leere, neue Datei
+    const p = planAusJson(j);
+    if (inhaltMit(p) === planInhalt()) {
+      if (!S.geaendert && j.geaendert) { S.geaendert = j.geaendert; save(); }
+      D_.inhalt = planInhalt(); D_.stand = j.geaendert || null; D_.mod = f.lastModified;
+      D_.zuletzt = new Date(f.lastModified); D_.status = 'ok'; D_.konflikt = null; return dateiRender();
+    }
+    if (S.geaendert && (!j.geaendert || S.geaendert > j.geaendert)) { D_.status = 'konflikt'; D_.konflikt = { j, f }; return dateiRender(); }
+    dateiUebernehmen(j, f);
+  }
+  function dateiPlanen() {
+    dateiRender();
+    if (!D_.h || !['ok', 'speichert'].includes(D_.status)) return;
+    clearTimeout(dTimer); dTimer = setTimeout(() => dTask(async () => {
+      if (!D_.h || planInhalt() === D_.inhalt) return dateiRender();
+      // Wurde die Datei inzwischen woanders geändert (anderer PC, anderer Tab)? Dann nicht blind überschreiben.
+      const { f, j } = await dateiLesen();
+      if (f.lastModified !== D_.mod && j && j.geaendert !== D_.stand) { D_.status = 'konflikt'; D_.konflikt = { j, f }; return dateiRender(); }
+      await dateiSchreiben();
+    }), 400);
+  }
+  // Andere Stelle hat die Datei geändert → still übernehmen, solange hier nichts Ungespeichertes ist
+  function dateiPruefen() {
+    if (!D_.h || D_.status !== 'ok') return;
+    dTask(async () => {
+      const f = await D_.h.getFile(); if (f.lastModified === D_.mod) return;
+      const { j } = await dateiLesen(); if (!j || j.geaendert === D_.stand) { D_.mod = f.lastModified; return; }
+      if (planInhalt() !== D_.inhalt) { D_.status = 'konflikt'; D_.konflikt = { j, f }; return dateiRender(); }
+      dateiUebernehmen(j, f); flashMsg('Plan aus der Plan-Datei neu geladen (dort geändert).');
+    });
+  }
+  async function dateiVerbinden(h, art) {
+    D_.h = h; D_.konflikt = null; await handleMerken(h);
+    if (art === 'neu') return dateiSchreiben();
+    return dateiAbgleich();
+  }
+  const dateiAktionen = {
+    neu: () => dTask(async () => {
+      const h = await window.showSaveFilePicker({ suggestedName: 'Masterplan.json', types: [{ description: 'Plan-Datei', accept: { 'application/json': ['.json'] } }] });
+      await dateiVerbinden(h, 'neu');
+    }),
+    oeffnen: () => dTask(async () => {
+      const [h] = await window.showOpenFilePicker({ types: [{ description: 'Plan-Datei', accept: { 'application/json': ['.json'] } }] });
+      if ((await h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw Object.assign(new Error(), { name: 'NotAllowedError' });
+      await dateiVerbinden(h, 'oeffnen');
+    }),
+    laden: () => dTask(async () => {
+      if ((await D_.h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw Object.assign(new Error(), { name: 'NotAllowedError' });
+      await dateiAbgleich();
+    }),
+    trennen: () => { clearTimeout(dTimer); Object.assign(D_, { h: null, status: 'aus', konflikt: null, inhalt: null, stand: null, mod: 0 }); handleMerken(null); dateiRender(); },
+    'nimm-datei': () => dTask(async () => { if (D_.konflikt) dateiUebernehmen(D_.konflikt.j, D_.konflikt.f); }),
+    'nimm-browser': () => dTask(async () => { await dateiSchreiben(); }),
+  };
+  function dateiRender() {
+    if (!FS_OK) return;
+    const name = D_.h ? esc(D_.h.name) : '', chip = $('datei-chip'), box = $('datei-box');
+    const ungespeichert = D_.h && D_.inhalt != null && planInhalt() !== D_.inhalt;
+    const st = {
+      aus: ['', '📄 Keine Plan-Datei', 'Plan-Datei anlegen oder öffnen'],
+      warten: ['warten', `📄 ${name} laden`, 'Klicken, um die Plan-Datei zu laden'],
+      ok: ['ok', `💾 ${name} · ${ungespeichert ? 'speichert…' : 'gespeichert ' + (D_.zuletzt ? D_.zuletzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '')}`, 'Jede Änderung wird automatisch in diese Datei gespeichert'],
+      speichert: ['ok', `💾 ${name} · speichert…`, ''],
+      konflikt: ['fehler', `⚠ ${name}: Abgleich nötig`, ''],
+      fehler: ['fehler', '⚠ Nicht in Datei gespeichert', D_.fehler],
+    }[D_.status];
+    chip.className = 'datei-chip ' + st[0]; chip.textContent = st[1]; chip.title = st[2];
+    const m = $('datei-menu'); m.hidden = !D_.menu;
+    if (D_.menu) m.innerHTML = (D_.h ? `<p>Verbunden mit <b>${name}</b>. Jede Änderung wird automatisch dort gespeichert.</p>` : '<p>Mit einer Plan-Datei (z. B. in OneDrive) hast du in jedem Browser und auf jedem PC denselben Stand, und nichts geht beim Löschen der Browserdaten verloren.</p>') +
+      '<button class="btn" data-datei="neu">Neue Plan-Datei…</button><button class="btn" data-datei="oeffnen">Plan-Datei öffnen…</button>' +
+      (D_.h ? '<button class="btn" data-datei="trennen">Verbindung trennen</button>' : '');
+    let h = '';
+    if (D_.status === 'warten') h = `<div class="warnbox"><b>Plan-Datei ${name} noch nicht geladen.</b> Der Browser fragt nach dem Öffnen einmal nach Erlaubnis. Bis dahin wird nichts in die Datei gespeichert.
+      <div class="row"><button class="btn primary" data-datei="laden">${name} laden</button><button class="btn" data-datei="trennen">Ohne Plan-Datei weiter</button></div></div>`;
+    else if (D_.status === 'konflikt' && D_.konflikt) h = `<div class="warnbox bad"><b>Zwei verschiedene Stände.</b> In <b>${name}</b> steht ein Stand vom ${esc(fmtZeit(D_.konflikt.j.geaendert || new Date(D_.konflikt.f.lastModified).toISOString()))}, in diesem Browser einer vom ${esc(fmtZeit(S.geaendert))}. Welchen willst du behalten? Der andere wird überschrieben.
+      <div class="row"><button class="btn primary" data-datei="nimm-datei">Stand aus der Datei laden</button><button class="btn" data-datei="nimm-browser">Browser-Stand in die Datei speichern</button></div></div>`;
+    else if (D_.status === 'fehler') h = `<div class="warnbox bad"><b>Änderungen werden nicht in die Plan-Datei gespeichert.</b> ${esc(D_.fehler)} Dein Stand in diesem Browser bleibt erhalten.
+      <div class="row"><button class="btn primary" data-datei="oeffnen">Plan-Datei erneut öffnen…</button><button class="btn" data-datei="neu">Neue Plan-Datei…</button><button class="btn" data-datei="trennen">Ohne Plan-Datei weiter</button></div></div>`;
+    box.innerHTML = h;
+  }
+  if (FS_OK) {
+    $('datei').hidden = false;
+    for (const b of document.querySelectorAll('.datei-nur')) b.hidden = false;
+    $('daten-hint').textContent = 'Am sichersten: eine Plan-Datei, z. B. in OneDrive. Jede Änderung wird automatisch hineingespeichert; in jedem Browser und auf jedem PC lädst du sie mit einem Klick. Ohne Plan-Datei liegt der Plan nur in diesem Browser. Der Export ist eine zusätzliche Sicherungskopie.';
+    $('datei-chip').addEventListener('click', e => {
+      e.stopPropagation();
+      if (D_.status === 'warten') return dateiAktionen.laden();
+      D_.menu = !D_.menu; dateiRender();
+    });
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-datei]');
+      if (b && dateiAktionen[b.dataset.datei]) { D_.menu = false; dateiAktionen[b.dataset.datei](); dateiRender(); return; }
+      if (D_.menu && !e.target.closest('#datei-menu')) { D_.menu = false; dateiRender(); }
+    });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) dateiPruefen(); });
+    window.addEventListener('focus', dateiPruefen);
+    window.addEventListener('beforeunload', e => { if (D_.h && ['ok', 'speichert'].includes(D_.status) && planInhalt() !== D_.inhalt) e.preventDefault(); /* Speichern läuft noch */ });
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
+    // Beim Start: gemerkte Datei wieder verbinden (ohne Klick nur, wenn der Browser den Zugriff dauerhaft erlaubt)
+    idb('readonly', st => st.get('plan')).then(async h => {
+      if (!h) return dateiRender();
+      D_.h = h;
+      if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted') return dTask(dateiAbgleich);
+      D_.status = 'warten'; dateiRender();
+    }).catch(() => dateiRender());
+  } else $('daten-hint').textContent = 'Der Plan liegt nur in diesem Browser. Mit dem Export sicherst du ihn oder überträgst ihn auf ein anderes Gerät. Tipp: In Chrome und Edge kannst du stattdessen eine automatisch gespeicherte Plan-Datei verwenden.';
 
   // ---------- Assistent ----------
   const STEPS = ['Start & Dauer', 'Bisheriges', 'Auslandssemester', 'Fokus & Sprache', 'Wahlbereiche', 'Forschung & Thesis', 'Weitere Wünsche'];

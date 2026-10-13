@@ -7,9 +7,21 @@
 
 Den Link kannst du einfach weitergeben. Jeder plant für sich:
 - Plan, Semesterauswahl, Fokusbereiche und Einstellungen liegen nur im Browser der jeweiligen Person (`localStorage`). Es gibt keinen Server und keine Anmeldung. Niemand sieht oder verändert den Plan eines anderen.
-- Ein anderes Gerät oder ein anderer Browser startet mit einem leeren Plan. Zum Übertragen oder Sichern: „Mein Plan“ → „Plan exportieren“ bzw. „Plan importieren“.
-- Wer die Browserdaten der Seite löscht, löscht auch den Plan. Vorher exportieren!
+- Ohne Plan-Datei startet ein anderes Gerät oder ein anderer Browser mit einem leeren Plan, und wer die Browserdaten löscht, löscht auch den Plan. Deshalb: **Plan-Datei verwenden** (siehe unten).
 - Die TUMonline-Daten (Termine und Prüfungen täglich, Studienplan montags) aktualisiert eine GitHub Action automatisch für alle (`.github/workflows/daten.yml`). Manuell startest du sie unter *Actions → Daten aktualisieren → Run workflow*.
+
+### Plan sichern: Plan-Datei (Chrome und Edge)
+Wie ein Word-Dokument, nur ohne Speichern-Drücken: Die App wird mit einer Datei verbunden und schreibt jede Änderung automatisch hinein.
+1. Oben links neben den Tabs auf **„📄 Keine Plan-Datei“ → „Neue Plan-Datei…“** klicken und z. B. `OneDriveStudiumMasterplan.json` wählen.
+2. Ab jetzt zeigt der Knopf „💾 Masterplan.json · gespeichert 16:42“. Jede Änderung landet nach einer halben Sekunde in der Datei.
+3. Beim nächsten Öffnen fragt der Browser einmal per Klick („Masterplan.json laden“) nach Erlaubnis und lädt dann den Stand aus der Datei. Wählt man im Erlaubnis-Dialog „Bei jedem Besuch zulassen“, entfällt auch dieser Klick.
+4. In einem anderen Browser, auf einem anderen PC oder in der lokalen `index.html`: einmal **„Plan-Datei öffnen…“** und dieselbe Datei wählen.
+
+Gut zu wissen:
+- Die Datei ist der maßgebliche Stand. Browserdaten löschen schadet nicht mehr. Liegt sie in OneDrive, gibt es zusätzlich Versionsverlauf und Papierkorb.
+- Haben Datei und Browser unterschiedliche Stände (z. B. vor dem Laden schon etwas geändert, oder Datei gleichzeitig auf einem anderen PC geändert), fragt die App, welcher Stand bleiben soll. Es wird nie still überschrieben.
+- Wird die Datei verschoben oder gelöscht, meldet die App das rot. Der Stand im Browser bleibt erhalten.
+- Firefox, Safari und Handy-Browser können nicht in Dateien schreiben. Dort gibt es nur Export und Import („Mein Plan“ → Daten).
 
 **Wer darf den Code ändern?** Nur der Repo-Besitzer und ausdrücklich eingeladene Collaborators. Andere können den Code ansehen, für sich kopieren (Fork) oder Änderungen per Pull Request *vorschlagen*. Übernommen wird davon nichts ohne Zustimmung des Besitzers.
 
@@ -19,7 +31,7 @@ Den Link kannst du einfach weitergeben. Jeder plant für sich:
 3. Das Repo muss öffentlich sein. GitHub Pages gibt es für private Repos nur mit einem kostenpflichtigen Plan.
 
 ## Lokal öffnen
-`index.html` per Doppelklick im Browser öffnen. Der Ordner `data/` und `app.js` müssen daneben liegen. Lokal gibt es zusätzlich die Aktualisieren-Knöpfe (über den Hilfsdienst, siehe unten). Der lokale Plan ist getrennt vom Plan auf der Online-Seite, weil der Browser je Adresse getrennt speichert. Übertragen geht per Export/Import.
+`index.html` per Doppelklick im Browser öffnen. Der Ordner `data/` und `app.js` müssen daneben liegen. Lokal gibt es zusätzlich die Aktualisieren-Knöpfe (über den Hilfsdienst, siehe unten). Ohne Plan-Datei ist der lokale Plan getrennt vom Plan auf der Online-Seite, weil der Browser je Adresse getrennt speichert. Mit derselben Plan-Datei nutzen beide denselben Stand.
 
 ### Katalog
 - Suche und Filter nach Wahlbereich, Sprache, Turnus und ECTS.
@@ -54,7 +66,7 @@ Danach erzeugt der Assistent einen Plan-Vorschlag. Er beachtet Turnus (WiSe/SoSe
   - CP-Regeln verletzt
   - Thesis vor 80 CP
   - APSO-Fortschrittsgrenzen
-- Gespeichert wird lokal im Browser. Zum Sichern gibt es Export und Import als JSON.
+- Gespeichert wird im Browser und, wenn verbunden, automatisch in der Plan-Datei. Export und Import als JSON gibt es zusätzlich (auch alte Exporte lassen sich als Plan-Datei öffnen).
 
 ### Aktuelles Semester (Tab „WiSe 26/27“)
 Für das laufende Semester sind alle Lehrveranstaltungen mit Terminen und alle bereits eingetragenen Prüfungstermine aus TUMonline hinterlegt.
