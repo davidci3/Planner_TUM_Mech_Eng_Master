@@ -11,6 +11,8 @@ Den Link kannst du einfach weitergeben. Jeder plant für sich:
 - Wer die Browserdaten der Seite löscht, löscht auch den Plan. Vorher exportieren!
 - Die TUMonline-Daten (Termine und Prüfungen täglich, Studienplan montags) aktualisiert eine GitHub Action automatisch für alle (`.github/workflows/daten.yml`). Manuell startest du sie unter *Actions → Daten aktualisieren → Run workflow*.
 
+**Wer darf den Code ändern?** Nur der Repo-Besitzer und ausdrücklich eingeladene Collaborators. Andere können den Code ansehen, für sich kopieren (Fork) oder Änderungen per Pull Request *vorschlagen*. Übernommen wird davon nichts ohne Zustimmung des Besitzers.
+
 ### Einmalige Einrichtung (für den Repo-Besitzer)
 1. *Settings → Pages*: Source „Deploy from a branch“, Branch `main`, Ordner `/ (root)`.
 2. *Settings → Actions → General → Workflow permissions*: „Read and write permissions“, damit die Action die neuen Daten committen darf.
