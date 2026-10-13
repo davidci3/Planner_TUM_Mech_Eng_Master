@@ -66,6 +66,7 @@ Danach erzeugt der Assistent einen Plan-Vorschlag. Er beachtet Turnus (WiSe/SoSe
 ### Mein Plan
 - Eine Spalte pro Semester. Je Modul: Semester ändern, Status ändern, 🔒 sperren, ↻ Alternative, ⛔ nie vorschlagen, × entfernen.
 - „Neu erzeugen“ behält bestandene, belegte und gesperrte Module.
+- **Regeln & Fortschritt:** Unter jedem Bereich lässt sich „N Module anzeigen“ aufklappen. Dann siehst du, welche Module aus deinem Plan dort zählen. Je Modul stehen der Turnus (WiSe/SoSe), das geplante Semester, der Status und die ECTS. Mit × nimmst du es aus dem Plan, ein Klick auf den Titel öffnet es im Katalog. Angerechnete Auslands-CP stehen mit dabei.
 - **Warnungen:**
   - Turnus passt nicht zum Semester
   - Voraussetzung fehlt oder liegt zu spät

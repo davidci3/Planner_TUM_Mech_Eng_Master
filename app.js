@@ -603,6 +603,8 @@
     else return;
     save(); renderCurrent(); renderPlanCount();
   }
+  // aufgeklappte Bereichslisten bleiben nach dem Neuzeichnen offen
+  $('reqs').addEventListener('toggle', e => { const d = e.target.closest && e.target.closest('details[data-req]'); if (d) d.open ? reqOpen.add(d.dataset.req) : reqOpen.delete(d.dataset.req); }, true);
   for (const el of ['cards', 'sems', 'reqs', 'wiz-body', 'view-semester']) {
     $(el).addEventListener('click', onCtrlClick);
     $(el).addEventListener('change', onCtrlChange);
@@ -659,7 +661,26 @@
     $('sems').innerHTML = h;
   }
 
-  function req(label, have, { min, max, soll }, sub) {
+  // Aufklappbare Liste der Module, die im Plan einem Bereich zugeordnet sind (plus angerechnete Auslands-CP)
+  const reqOpen = new Set();
+  function reqMods(bs) {
+    const list = entries().filter(([, e]) => bs.includes(e.b))
+      .sort((a, b) => (a[1].sem || 99) - (b[1].sem || 99) || M[a[0]].titel.localeCompare(M[b[0]].titel, 'de'));
+    const ausl = C().ausland.an ? bs.reduce((t, b) => t + (Number(C().ausland.anr[b]) || 0), 0) : 0;
+    if (!list.length && !ausl) return '';
+    const key = bs.join('+'), n = list.length;
+    return `<details class="req-mods" data-req="${key}" ${reqOpen.has(key) ? 'open' : ''}><summary>${n === 1 ? '1 Modul' : n + ' Module'}${ausl ? ` · ${ausl} CP Ausland` : ''} anzeigen</summary>
+      ${list.map(([id, e]) => { const m = M[id]; return `<div class="rm-row">
+        <span class="rm-t" data-jump="${id}" title="Im Katalog öffnen">${esc(m.titel)}</span>
+        <span class="rm-meta">${turnusKnown(m) ? `<span class="tag">${esc(m.turnus)}</span>` : '<span class="tag" title="Turnus unbekannt">Turnus ?</span>'}
+          <span class="tag" title="Im Plan">${e.sem ? `${e.sem}. Sem · ${semInfo(e.sem).label}` : 'ohne Semester'}</span>
+          ${e.st !== 'geplant' ? `<span class="tag ${e.st === 'bestanden' ? 'ok' : ''}">${ST[e.st]}</span>` : ''}
+          <span class="tag ects">${m.ects} ECTS</span>
+          <button class="icon-btn" data-rm="${id}" title="Aus dem Plan entfernen">×</button></span></div>`; }).join('')}
+      ${ausl ? `<div class="rm-row"><span class="rm-t" style="cursor:default">🌍 Auslandssemester (angerechnet)</span><span class="rm-meta"><span class="tag ects">${ausl} ECTS</span></span></div>` : ''}
+    </details>`;
+  }
+  function req(label, have, { min, max, soll }, sub, bs) {
     let target = soll ?? min ?? max ?? 0, status = '', cls = '';
     if (soll != null) {
       if (have === soll) { status = 'erfüllt'; cls = 'ok'; }
@@ -673,7 +694,7 @@
     const rule = soll != null ? ` / ${soll} CP` : min != null ? ` / mind. ${min}` : max != null ? ` / max. ${max}` : ' CP';
     const pct = target ? Math.min(100, have / target * 100) : 0;
     return `<div class="req ${sub ? 'sub' : ''}"><div class="req-head"><span><b>${esc(label)}</b></span><span class="r">${have}${rule}</span></div>
-      <div class="bar ${cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''}"><i style="width:${pct}%"></i></div><div class="status ${cls}">${status}</div></div>`;
+      <div class="bar ${cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''}"><i style="width:${pct}%"></i></div><div class="status ${cls}">${status}</div>${bs ? reqMods(bs) : ''}</div>`;
   }
   function renderPlan() {
     const an = analyse(), s = bucketSums();
@@ -692,17 +713,17 @@
       (total >= 120 && !g.some(w => w.lvl !== 'info') ? '<div class="okbox">Alle Regeln erfüllt, 120 CP sind verplant.</div>' : '');
     renderSems(an);
     let h = req('Mastermodule', mm, { soll: 60 });
-    h += req(B.MM_G.name, s.MM_G || 0, { min: 20 }, true);
-    h += req(B.MM_K.name, s.MM_K || 0, { max: 40 }, true);
-    h += req(B.MM_A.name, s.MM_A || 0, { max: 15 }, true);
-    h += req(B.MM_F.name, s.MM_F || 0, { max: 15 }, true);
-    h += req(B.HP.name, s.HP || 0, { soll: 8 });
-    h += req(B.IE.name, s.IE || 0, { soll: 6 });
-    h += req(B.FP.name, s.FP || 0, { soll: 11 });
-    h += req('Überfachliche Ergänzung', ue, { soll: 5 });
-    h += req(B.UE_E.name, s.UE_E || 0, { min: 3 }, true);
-    h += req(B.MT.name, s.MT || 0, { soll: 30 });
-    if (s.AUF) h += req('Auflagen (nicht in den 120 CP)', s.AUF, {});
+    h += req(B.MM_G.name, s.MM_G || 0, { min: 20 }, true, ['MM_G']);
+    h += req(B.MM_K.name, s.MM_K || 0, { max: 40 }, true, ['MM_K']);
+    h += req(B.MM_A.name, s.MM_A || 0, { max: 15 }, true, ['MM_A']);
+    h += req(B.MM_F.name, s.MM_F || 0, { max: 15 }, true, ['MM_F']);
+    h += req(B.HP.name, s.HP || 0, { soll: 8 }, false, ['HP']);
+    h += req(B.IE.name, s.IE || 0, { soll: 6 }, false, ['IE']);
+    h += req(B.FP.name, s.FP || 0, { soll: 11 }, false, ['FP']);
+    h += req('Überfachliche Ergänzung', ue, { soll: 5 }, false, ['UE']);
+    h += req(B.UE_E.name, s.UE_E || 0, { min: 3 }, true, ['UE_E']);
+    h += req(B.MT.name, s.MT || 0, { soll: 30 }, false, ['MT']);
+    if (s.AUF) h += req('Auflagen (nicht in den 120 CP)', s.AUF, {}, false, ['AUF']);
     $('reqs').innerHTML = h;
     const fd = {};
     for (const [id] of entries()) for (const f of M[id].fokus) fd[f] = (fd[f] || 0) + M[id].ects;
