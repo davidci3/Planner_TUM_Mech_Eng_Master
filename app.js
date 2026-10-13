@@ -82,7 +82,7 @@
     '. Voraussetzungen wurden automatisch aus den Modulbeschreibungen erkannt. Ohne Gewähr: Verbindlich sind TUMonline und die FPSO.' +
     '<br>Dein Plan gehört nur dir: Niemand sonst sieht oder verändert ihn. ' + (FS_OK
       ? 'Ohne Plan-Datei liegt er nur in diesem Browser. Mit einer Plan-Datei (Knopf neben den Tabs, z. B. in OneDrive) wird jede Änderung automatisch in die Datei gespeichert: gleicher Stand in jedem Browser und auf jedem PC, und nichts geht beim Löschen der Browserdaten verloren.'
-      : 'Er liegt nur in diesem Browser. Zum Sichern oder für ein anderes Gerät: „Mein Plan“ → Export/Import. Eine automatisch gespeicherte Plan-Datei gibt es in Chrome und Edge.');
+      : 'Er liegt in diesem Browser. Mit „Speichern“ (Knopf neben den Tabs oder Strg+S) sicherst du ihn als Plan-Datei und öffnest ihn überall wieder. Automatisch speichern können Chrome und Edge.');
 
   // ---------- Semester ----------
   function semInfo(i) {
@@ -845,7 +845,32 @@
     if (art === 'neu') return dateiSchreiben();
     return dateiAbgleich();
   }
-  const dateiAktionen = {
+  // Ohne File System Access (Firefox, Safari): „Speichern“ lädt die Plan-Datei herunter, „Öffnen“ liest eine ausgewählte Datei.
+  // S.dateiName / S.dateiGespeichert (Zeitstempel des gespeicherten Stands) merken, ob es Ungespeichertes gibt.
+  const fbUngespeichert = () => !!S.geaendert && S.geaendert !== S.dateiGespeichert;
+  function fbSpeichern() {
+    if (!S.geaendert) S.geaendert = new Date().toISOString();
+    const name = S.dateiName || 'Masterplan.json', a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(planDaten(), null, 2)], { type: 'application/json' }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    Object.assign(S, { dateiName: name, dateiGespeichert: S.geaendert, dateiZeit: new Date().toISOString() });
+    D_.frage = false; save(); dateiRender();
+  }
+  const fbInput = document.createElement('input');
+  fbInput.type = 'file'; fbInput.accept = 'application/json,.json'; fbInput.hidden = true; document.body.appendChild(fbInput);
+  fbInput.addEventListener('change', async () => {
+    const file = fbInput.files[0]; fbInput.value = ''; if (!file) return;
+    try {
+      const j = JSON.parse(await file.text());
+      Object.assign(S, planAusJson(j));
+      S.geaendert = j.geaendert || new Date(file.lastModified).toISOString(); letzterInhalt = planInhalt();
+      Object.assign(S, { dateiName: file.name, dateiGespeichert: S.geaendert, dateiZeit: new Date(file.lastModified).toISOString() });
+      D_.frage = false; save(); renderAll(); dateiRender();
+    } catch (e) { flashMsg('Die Datei ist keine Plan-Datei dieser App.'); }
+  });
+  const fbOeffnen = trotzdem => { if (fbUngespeichert() && !trotzdem) { D_.frage = true; return dateiRender(); } D_.frage = false; dateiRender(); fbInput.click(); };
+
+  const dateiAktionen = FS_OK ? {
     neu: () => dTask(async () => {
       const h = await window.showSaveFilePicker({ suggestedName: 'Masterplan.json', types: [{ description: 'Plan-Datei', accept: { 'application/json': ['.json'] } }] });
       await dateiVerbinden(h, 'neu');
@@ -859,12 +884,32 @@
       if ((await D_.h.requestPermission({ mode: 'readwrite' })) !== 'granted') throw Object.assign(new Error(), { name: 'NotAllowedError' });
       await dateiAbgleich();
     }),
+    // Strg+S: sofort schreiben (falls verbunden), sonst neue Plan-Datei anlegen
+    speichern: () => D_.h && ['ok', 'speichert'].includes(D_.status) ? (clearTimeout(dTimer), dTask(dateiSchreiben)) : D_.status === 'warten' ? dateiAktionen.laden() : D_.h ? undefined : dateiAktionen.neu(),
     trennen: () => { clearTimeout(dTimer); Object.assign(D_, { h: null, status: 'aus', konflikt: null, inhalt: null, stand: null, mod: 0 }); handleMerken(null); dateiRender(); },
     'nimm-datei': () => dTask(async () => { if (D_.konflikt) dateiUebernehmen(D_.konflikt.j, D_.konflikt.f); }),
     'nimm-browser': () => dTask(async () => { await dateiSchreiben(); }),
+  } : {
+    speichern: fbSpeichern,
+    oeffnen: () => fbOeffnen(false),
+    'oeffnen-trotzdem': () => fbOeffnen(true),
+    abbrechen: () => { D_.frage = false; dateiRender(); },
   };
+  const uhr = d => d ? new Date(d).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '';
+  function dateiRenderFB() {
+    const name = esc(S.dateiName || 'Masterplan.json'), uns = fbUngespeichert(), chip = $('datei-chip');
+    const st = uns ? ['warten', S.dateiName ? `● ${name} · nicht gespeichert` : '● Plan nicht gespeichert', 'Klicken zum Speichern (Strg+S)']
+      : S.dateiName ? ['ok', `💾 ${name} · gespeichert ${uhr(S.dateiZeit)}`, 'Alles gespeichert'] : ['', '📄 Keine Plan-Datei', 'Plan-Datei speichern oder öffnen'];
+    chip.className = 'datei-chip ' + st[0]; chip.textContent = st[1]; chip.title = st[2];
+    const m = $('datei-menu'); m.hidden = !D_.menu;
+    if (D_.menu) m.innerHTML = '<p>Dieser Browser kann nicht selbst in eine Datei schreiben. <b>Speichern</b> (auch Strg+S) lädt die Plan-Datei herunter, <b>Öffnen</b> lädt sie wieder.</p>' +
+      `<button class="btn primary" data-datei="speichern">Speichern${uns ? '' : ' (aktuell)'} · Strg+S</button><button class="btn" data-datei="oeffnen">Plan-Datei öffnen…</button>` +
+      '<p>Tipp für Firefox: Einstellungen → Allgemein → Dateien und Anwendungen → „Jedes Mal nachfragen, wo Dateien gespeichert werden sollen“. Dann kannst du immer dieselbe Datei (z. B. in OneDrive) überschreiben, statt dass im Download-Ordner Masterplan(1).json entsteht.</p>';
+    $('datei-box').innerHTML = D_.frage ? `<div class="warnbox"><b>Ungespeicherte Änderungen.</b> Wenn du jetzt eine Plan-Datei öffnest, gehen deine Änderungen seit dem letzten Speichern verloren.
+      <div class="row"><button class="btn primary" data-datei="speichern">Erst speichern</button><button class="btn" data-datei="oeffnen-trotzdem">Verwerfen und öffnen…</button><button class="btn" data-datei="abbrechen">Abbrechen</button></div></div>` : '';
+  }
   function dateiRender() {
-    if (!FS_OK) return;
+    if (!FS_OK) return dateiRenderFB();
     const name = D_.h ? esc(D_.h.name) : '', chip = $('datei-chip'), box = $('datei-box');
     const ungespeichert = D_.h && D_.inhalt != null && planInhalt() !== D_.inhalt;
     const st = {
@@ -889,24 +934,28 @@
       <div class="row"><button class="btn primary" data-datei="oeffnen">Plan-Datei erneut öffnen…</button><button class="btn" data-datei="neu">Neue Plan-Datei…</button><button class="btn" data-datei="trennen">Ohne Plan-Datei weiter</button></div></div>`;
     box.innerHTML = h;
   }
+  // Kopfzeilen-Knopf, Menü und Strg+S (beide Varianten)
+  $('datei').hidden = false;
+  $('datei-chip').addEventListener('click', e => {
+    e.stopPropagation();
+    if (FS_OK && D_.status === 'warten') return dateiAktionen.laden();
+    D_.menu = !D_.menu; dateiRender();
+  });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-datei]');
+    if (b && dateiAktionen[b.dataset.datei]) { D_.menu = false; dateiAktionen[b.dataset.datei](); dateiRender(); return; }
+    if (D_.menu && !e.target.closest('#datei-menu')) { D_.menu = false; dateiRender(); }
+  });
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') { e.preventDefault(); dateiAktionen.speichern(); }
+  });
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
   if (FS_OK) {
-    $('datei').hidden = false;
     for (const b of document.querySelectorAll('.datei-nur')) b.hidden = false;
     $('daten-hint').textContent = 'Am sichersten: eine Plan-Datei, z. B. in OneDrive. Jede Änderung wird automatisch hineingespeichert; in jedem Browser und auf jedem PC lädst du sie mit einem Klick. Ohne Plan-Datei liegt der Plan nur in diesem Browser. Der Export ist eine zusätzliche Sicherungskopie.';
-    $('datei-chip').addEventListener('click', e => {
-      e.stopPropagation();
-      if (D_.status === 'warten') return dateiAktionen.laden();
-      D_.menu = !D_.menu; dateiRender();
-    });
-    document.addEventListener('click', e => {
-      const b = e.target.closest('[data-datei]');
-      if (b && dateiAktionen[b.dataset.datei]) { D_.menu = false; dateiAktionen[b.dataset.datei](); dateiRender(); return; }
-      if (D_.menu && !e.target.closest('#datei-menu')) { D_.menu = false; dateiRender(); }
-    });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) dateiPruefen(); });
     window.addEventListener('focus', dateiPruefen);
     window.addEventListener('beforeunload', e => { if (D_.h && ['ok', 'speichert'].includes(D_.status) && planInhalt() !== D_.inhalt) e.preventDefault(); /* Speichern läuft noch */ });
-    try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
     // Beim Start: gemerkte Datei wieder verbinden (ohne Klick nur, wenn der Browser den Zugriff dauerhaft erlaubt)
     idb('readonly', st => st.get('plan')).then(async h => {
       if (!h) return dateiRender();
@@ -914,7 +963,14 @@
       if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted') return dTask(dateiAbgleich);
       D_.status = 'warten'; dateiRender();
     }).catch(() => dateiRender());
-  } else $('daten-hint').textContent = 'Der Plan liegt nur in diesem Browser. Mit dem Export sicherst du ihn oder überträgst ihn auf ein anderes Gerät. Tipp: In Chrome und Edge kannst du stattdessen eine automatisch gespeicherte Plan-Datei verwenden.';
+  } else {
+    const [bs, bo] = document.querySelectorAll('.datei-nur');
+    bs.dataset.datei = 'speichern'; bs.textContent = 'Plan-Datei speichern (Strg+S)'; bs.hidden = false; bo.hidden = false;
+    $('daten-hint').textContent = 'Dieser Browser kann nicht automatisch in eine Datei speichern. „Plan-Datei speichern“ (oder Strg+S) lädt deinen Plan als Datei herunter, „Plan-Datei öffnen…“ lädt ihn wieder, z. B. in einem anderen Browser oder auf einem anderen PC. Wer mit einer Plan-Datei arbeitet, wird beim Schließen an ungespeicherte Änderungen erinnert. Automatisch speichern können Chrome und Edge.';
+    // Schließen mit ungespeicherten Änderungen: Browser fragt nach (ein Download beim Schließen wird von Browsern blockiert)
+    window.addEventListener('beforeunload', e => { if (S.dateiName && fbUngespeichert()) { e.preventDefault(); e.returnValue = ''; } });
+    dateiRender();
+  }
 
   // ---------- Assistent ----------
   const STEPS = ['Start & Dauer', 'Bisheriges', 'Auslandssemester', 'Fokus & Sprache', 'Wahlbereiche', 'Forschung & Thesis', 'Weitere Wünsche'];

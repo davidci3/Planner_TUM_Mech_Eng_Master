@@ -21,7 +21,14 @@ Gut zu wissen:
 - Die Datei ist der maßgebliche Stand. Browserdaten löschen schadet nicht mehr. Liegt sie in OneDrive, gibt es zusätzlich Versionsverlauf und Papierkorb.
 - Haben Datei und Browser unterschiedliche Stände (z. B. vor dem Laden schon etwas geändert, oder Datei gleichzeitig auf einem anderen PC geändert), fragt die App, welcher Stand bleiben soll. Es wird nie still überschrieben.
 - Wird die Datei verschoben oder gelöscht, meldet die App das rot. Der Stand im Browser bleibt erhalten.
-- Firefox, Safari und Handy-Browser können nicht in Dateien schreiben. Dort gibt es nur Export und Import („Mein Plan“ → Daten).
+- In Chrome und Edge speichert auch **Strg+S** sofort.
+
+### Firefox, Safari und andere Browser: Speichern-Knopf
+Diese Browser erlauben Webseiten nicht, eine Datei auf dem PC zu überschreiben. Deshalb wird dort von Hand gespeichert:
+- Der Knopf neben den Tabs zeigt „● Plan nicht gespeichert“, sobald es Änderungen gibt. **„Speichern“** im Menü oder **Strg+S** lädt `Masterplan.json` herunter, danach steht dort „💾 Masterplan.json · gespeichert“.
+- **„Plan-Datei öffnen…“** lädt den Stand wieder, z. B. in einem anderen Browser oder auf einem anderen PC. Gibt es noch Ungespeichertes, fragt die App vorher.
+- Wer schon einmal gespeichert oder geöffnet hat, wird beim Schließen oder Neuladen mit ungespeicherten Änderungen vom Browser gefragt, ob er die Seite wirklich verlassen will. Automatisch beim Schließen herunterladen geht nicht, weil Browser Downloads beim Schließen einer Seite blockieren.
+- Tipp für Firefox: *Einstellungen → Allgemein → Dateien und Anwendungen → „Jedes Mal nachfragen, wo Dateien gespeichert werden sollen“*. Dann überschreibst du beim Speichern immer dieselbe Datei (z. B. in OneDrive), statt dass im Download-Ordner `Masterplan(1).json` entsteht.
 
 **Wer darf den Code ändern?** Nur der Repo-Besitzer und ausdrücklich eingeladene Collaborators. Andere können den Code ansehen, für sich kopieren (Fork) oder Änderungen per Pull Request *vorschlagen*. Übernommen wird davon nichts ohne Zustimmung des Besitzers.
 
