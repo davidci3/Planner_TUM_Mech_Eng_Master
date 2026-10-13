@@ -929,7 +929,7 @@
     };
     const f = MOBIL && teilDatei(name, txt);
     if (!f) return download();
-    navigator.share({ files: [f], title: 'Plan-Datei' })
+    navigator.share({ files: [f] }) // nur die Datei: Titel oder Text würde Drive als zusätzliche .txt speichern
       .then(() => { fbGespeichert(name); flashMsg('Plan-Datei geteilt. Wenn du „In Drive speichern“ gewählt hast, liegt sie jetzt in Google Drive.'); })
       .catch(e => { if (e && e.name === 'AbortError') flashMsg('Nicht gespeichert (Teilen abgebrochen).'); else download(); });
   }
