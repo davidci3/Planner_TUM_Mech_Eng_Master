@@ -1,0 +1,6 @@
+# lokale Protokolle und Zwischenstände
+server.log
+server.log.alt
+*.tmp
+raw-*.json
+node_modules/

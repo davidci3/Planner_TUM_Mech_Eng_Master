@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fächerübersicht MW Master</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface2: #eef1f5; --text: #1b2430; --muted: #5d6a7a;
+  --border: #d9dee6; --accent: #0065bd; --accent-soft: #e3effa; --ok: #1d7f45; --ok-soft: #e2f4e9;
+  --warn: #a65b00; --warn-soft: #fdf0dd; --bad: #b42318; --bad-soft: #fde7e5; --star: #c08a00;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161c; --surface: #1a2029; --surface2: #232b36; --text: #e6eaf0; --muted: #9aa6b5;
+  --border: #2e3846; --accent: #5aa9f0; --accent-soft: #1d3247; --ok: #4cc27f; --ok-soft: #173225;
+  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040;
+  --shadow: none;
+} }
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2029; --surface2: #232b36; --text: #e6eaf0; --muted: #9aa6b5;
+  --border: #2e3846; --accent: #5aa9f0; --accent-soft: #1d3247; --ok: #4cc27f; --ok-soft: #173225;
+  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+button, input, select { font: inherit; color: inherit; }
+input[type=number], input[type=text], input[type=search], select { border: 1px solid var(--border); background: var(--bg); border-radius: 6px; padding: 4px 6px; }
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+header h1 { font-size: 18px; margin: 0; }
+header .sub { color: var(--muted); font-size: 13px; }
+.tabs { display: flex; gap: 4px; background: var(--surface2); padding: 3px; border-radius: 8px; }
+.tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.tabs button.active { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
+.badge-count { background: var(--accent); color: #fff; border-radius: 10px; padding: 0 7px; font-size: 12px; margin-left: 4px; }
+main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 60px; }
+.layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+aside { position: sticky; top: 76px; max-height: calc(100vh - 90px); overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+aside h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 14px 0 6px; }
+aside h3:first-child { margin-top: 0; }
+.search { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.checks label { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; font-size: 14px; cursor: pointer; }
+.checks label .n { margin-left: auto; color: var(--muted); font-size: 12px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { border: 1px solid var(--border); background: var(--bg); border-radius: 6px; padding: 3px 9px; cursor: pointer; font-size: 13px; }
+.seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.link-btn { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: inherit; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.fokusbar { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+.fokusbar h2 { font-size: 15px; margin: 0 0 4px; }
+.fokusbar p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
+.chip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.chip.on2 { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.chip .cnt { opacity: .7; font-size: 12px; margin-left: 3px; }
+.chip.extra { border-style: dashed; }
+.profiles { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; color: var(--muted); font-size: 13px; }
+.cards { display: grid; gap: 8px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+.card.inplan { border-color: var(--ok); box-shadow: inset 3px 0 0 var(--ok); }
+.card.reco { box-shadow: inset 3px 0 0 var(--star); }
+.card.inplan.reco { box-shadow: inset 3px 0 0 var(--ok); }
+.card.flash { outline: 2px solid var(--accent); }
+.card-top { display: flex; gap: 10px; align-items: flex-start; }
+.card-main { flex: 1; min-width: 0; cursor: pointer; }
+.card-title { font-weight: 600; }
+.card-title .k { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+.card-title .en { color: var(--muted); font-weight: 400; font-size: 13px; display: block; }
+.meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.tag { font-size: 12px; padding: 1px 7px; border-radius: 5px; background: var(--surface2); color: var(--muted); white-space: nowrap; }
+.tag.ects { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.tag.b { border: 1px solid var(--border); background: transparent; }
+.tag.f { background: transparent; border: 1px dashed var(--border); }
+.tag.f.sel { border: 1px solid var(--accent); color: var(--accent); }
+.tag.pre { background: var(--surface2); color: var(--text); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); }
+.tag.bad { background: var(--bad-soft); color: var(--bad); }
+.tag.okt { background: var(--ok-soft); color: var(--ok); }
+.plan-ctrl { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.plan-ctrl select { font-size: 12px; max-width: 200px; padding: 2px 4px; }
+.plan-ctrl .row { justify-content: flex-end; }
+.btn { border: 1px solid var(--border); background: var(--bg); border-radius: 7px; padding: 5px 11px; cursor: pointer; white-space: nowrap; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.small { padding: 2px 8px; font-size: 12px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.icon-btn { border: 0; background: none; cursor: pointer; padding: 2px 4px; color: var(--muted); font-size: 14px; line-height: 1; border-radius: 4px; }
+.icon-btn:hover { color: var(--text); background: var(--surface2); }
+.icon-btn.on { color: var(--accent); }
+.details { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 14px; display: grid; gap: 8px; }
+.details h4 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.details p { margin: 2px 0 0; white-space: pre-line; }
+.details ul { margin: 2px 0 0; padding-left: 18px; }
+.more { text-align: center; margin: 14px 0; }
+.empty { text-align: center; color: var(--muted); padding: 40px 0; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.panel h2 { font-size: 16px; margin: 0 0 12px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.panel h2 small { color: var(--muted); font-weight: 400; font-size: 13px; }
+.plan-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.total { font-size: 26px; font-weight: 700; }
+.req { margin-bottom: 12px; }
+.req-head { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.req-head .r { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.req.sub { padding-left: 14px; }
+.bar { position: relative; height: 8px; background: var(--surface2); border-radius: 4px; margin-top: 5px; overflow: hidden; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); border-radius: 4px; }
+.bar.ok i { background: var(--ok); }
+.bar.bad i { background: var(--bad); }
+.status { font-size: 12px; margin-top: 3px; }
+.status.ok { color: var(--ok); } .status.bad { color: var(--bad); } .status.warn { color: var(--warn); }
+.fbar { display: grid; grid-template-columns: 170px 1fr 48px; gap: 8px; align-items: center; font-size: 13px; margin: 4px 0; }
+.fbar .bar { margin: 0; height: 10px; }
+.fbar .v { text-align: right; font-variant-numeric: tabular-nums; }
+.hint { color: var(--muted); font-size: 13px; }
+.warnbox, .okbox, .infobox { border-radius: 8px; padding: 7px 12px; font-size: 13px; margin-bottom: 6px; }
+.warnbox { background: var(--warn-soft); color: var(--warn); }
+.warnbox.bad { background: var(--bad-soft); color: var(--bad); }
+.okbox { background: var(--ok-soft); color: var(--ok); }
+.infobox { background: var(--accent-soft); color: var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Semesteransicht */
+.sems { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; align-items: start; margin-bottom: 16px; }
+.sem { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.sem.past { opacity: .85; background: var(--surface2); }
+.sem.abroad { border-style: dashed; }
+.sem h3 { font-size: 14px; margin: 0; display: flex; justify-content: space-between; gap: 6px; }
+.sem h3 .cp { font-variant-numeric: tabular-nums; }
+.sem .semsub { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.sem .bar { margin: 4px 0 8px; }
+.item { border-top: 1px solid var(--border); padding: 6px 0; font-size: 13px; }
+.item .it-top { display: flex; gap: 6px; align-items: baseline; }
+.item .it-title { flex: 1; min-width: 0; cursor: pointer; }
+.item .it-title:hover { color: var(--accent); }
+.item .it-cp { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.item .it-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; align-items: center; }
+.item .it-meta select { font-size: 12px; padding: 1px 3px; max-width: 135px; }
+.item .it-warn { font-size: 12px; color: var(--warn); margin-top: 2px; }
+.item.fixed .it-title::before { content: "✓ "; color: var(--ok); }
+/* Assistent */
+.wiz-steps { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+.wiz-steps button { border: 1px solid var(--border); background: var(--bg); border-radius: 999px; padding: 3px 11px; font-size: 13px; cursor: pointer; }
+.wiz-steps button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.wiz-steps button.done { border-color: var(--ok); color: var(--ok); }
+.q { margin: 0 0 16px; }
+.q > label, .q > .ql { display: block; font-weight: 600; margin-bottom: 4px; }
+.q .hint { margin: 2px 0 6px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; }
+.slider { display: grid; grid-template-columns: 1fr 70px; gap: 8px; align-items: center; }
+.slider input[type=range] { width: 100%; }
+.wiz-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); }
+.pick { max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 6px; }
+.pick div { display: flex; justify-content: space-between; gap: 6px; padding: 5px 8px; border-top: 1px solid var(--border); font-size: 13px; align-items: center; }
+.pick div:first-child { border-top: 0; }
+/* Aktuelles Semester */
+.subtabs { display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.subtabs button { border: 0; background: none; padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--muted); }
+.subtabs button.on { border-bottom-color: var(--accent); color: var(--text); font-weight: 600; }
+.sem-add { display: grid; gap: 6px; }
+.sem-add .pick { max-height: 340px; margin-top: 0; }
+.tag.semt { background: var(--accent-soft); color: var(--accent); }
+.tag.ex { background: var(--warn-soft); color: var(--warn); }
+.tag.pz { border: 1px solid currentColor; background: transparent; cursor: pointer; }
+.tag.pz.ja { color: var(--bad); } .tag.pz.erster { color: var(--warn); } .tag.pz.unklar { color: var(--muted); border-style: dashed; } .tag.pz.nein { color: var(--ok); }
+.smod { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; border-left: 4px solid hsl(var(--h) 60% 50%); }
+.smod-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.smod-head .t { font-weight: 600; flex: 1; min-width: 200px; cursor: pointer; }
+.smod-head .t:hover { color: var(--accent); }
+.kurs { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: baseline; border-top: 1px solid var(--border); padding: 6px 0; font-size: 13px; }
+.kurs.off { opacity: .5; }
+.kurs .ktyp { font-weight: 600; font-size: 12px; min-width: 26px; }
+.kurs .kzeit { color: var(--muted); }
+.kurs .kctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.kurs select { font-size: 12px; padding: 1px 3px; max-width: 150px; }
+.smods { display: grid; gap: 8px; }
+/* Wochenansicht */
+.week-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.week-nav .wk { font-weight: 600; min-width: 210px; text-align: center; }
+.week-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.week { display: grid; min-width: 680px; position: relative; }
+.week .dh { position: sticky; top: 0; text-align: center; font-size: 13px; font-weight: 600; padding: 6px 2px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); background: var(--surface); }
+.week .dh.today { color: var(--accent); }
+.week .dh small { display: block; font-weight: 400; color: var(--muted); }
+.week .tcol { position: relative; }
+.week .tcol span { position: absolute; right: 6px; font-size: 11px; color: var(--muted); transform: translateY(-50%); }
+.week .dcol { position: relative; border-left: 1px solid var(--border); background-image: linear-gradient(var(--border) 1px, transparent 1px); background-size: 100% var(--hour); }
+.ev { position: absolute; border-radius: 5px; padding: 2px 5px; font-size: 11px; line-height: 1.25; overflow: hidden; background: hsl(var(--h) 80% 93%); border-left: 3px solid hsl(var(--h) 60% 45%); color: #1b2430; cursor: default; }
+.ev.optional { background: hsl(var(--h) 60% 96%); border-left-style: dotted; color: #3b4654; }
+.ev b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev .pf { font-weight: 700; color: #b42318; }
+.ev.k-bad { outline: 2px solid var(--bad); outline-offset: -1px; }
+.ev.k-warn { outline: 2px dashed var(--warn); outline-offset: -1px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ev { background: hsl(var(--h) 35% 24%); color: #e6eaf0; } :root:not([data-theme="light"]) .ev.optional { background: hsl(var(--h) 20% 18%); color: #c3ccd8; } :root:not([data-theme="light"]) .ev .pf { color: #f27a6e; } }
+:root[data-theme="dark"] .ev { background: hsl(var(--h) 35% 24%); color: #e6eaf0; }
+:root[data-theme="dark"] .ev.optional { background: hsl(var(--h) 20% 18%); color: #c3ccd8; }
+:root[data-theme="dark"] .ev .pf { color: #f27a6e; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+/* Prüfungskalender */
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.month { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+.month h3 { margin: 0 0 6px; font-size: 14px; }
+.mgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.mgrid .wd { font-size: 11px; color: var(--muted); text-align: center; }
+.mgrid .d { min-width: 0; overflow: hidden; min-height: 46px; border-radius: 5px; background: var(--bg); padding: 2px 3px; font-size: 11px; }
+.mgrid .d.out { visibility: hidden; }
+.mgrid .d.we { background: var(--surface2); }
+.mgrid .d .n { color: var(--muted); }
+.mgrid .d.has { background: var(--warn-soft); }
+.mgrid .d.clash { background: var(--bad-soft); }
+.mgrid .x { display: block; border-radius: 3px; padding: 0 3px; margin-top: 1px; background: hsl(var(--h) 60% 50%); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.mgrid .x.wdh { opacity: .55; }
+table.list { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.list th, table.list td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+table.list th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
+.tbl-wrap { overflow-x: auto; }
+.refresh-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.tag.neu { background: var(--star); color: #1b2430; font-weight: 600; }
+.ev.neu { box-shadow: inset 0 0 0 2px var(--star); }
+.mgrid .x.neu { outline: 2px solid var(--star); outline-offset: -1px; }
+table.list tr.neu td { background: var(--accent-soft); }
+table.list tr.ohne td { color: var(--muted); }
+.neu-box { border: 1px solid var(--star); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; }
+ul.chg, ul.offen { margin: 4px 0 6px; padding-left: 18px; font-size: 13px; }
+ul.offen li { margin: 2px 0; }
+details.more-warn summary { cursor: pointer; color: var(--muted); font-size: 13px; margin: 2px 0 8px; }
+footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
+.only-mobile { display: none; }
+@media (max-width: 900px) {
+  header { padding: 10px 16px; position: static; }
+  main { padding: 12px 16px 60px; }
+  .layout, .plan-grid { grid-template-columns: 1fr; }
+  aside { position: static; max-height: none; display: none; }
+  aside.open { display: block; }
+  .only-mobile { display: inline-block; }
+  .card-top { flex-direction: column; }
+  .plan-ctrl { align-items: stretch; align-self: stretch; }
+  .fbar { grid-template-columns: 120px 1fr 40px; }
+  .tabs { flex-wrap: wrap; }
+  .kurs { grid-template-columns: auto 1fr; }
+  .kurs .kctl { grid-column: 1 / -1; justify-content: flex-start; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Fächerübersicht · M.Sc. Maschinenwesen (TUM)</h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="row">
+    <div class="tabs" role="tablist">
+      <button id="tab-katalog" data-tab="katalog">Katalog</button>
+      <button id="tab-wizard" data-tab="wizard">Planer-Assistent</button>
+      <button id="tab-plan" data-tab="plan">Mein Plan <span class="badge-count" id="plan-count">0</span></button>
+      <button id="tab-semester" data-tab="semester"><span id="tab-semester-label">Semester</span> <span class="badge-count" id="sem-count">0</span></button>
+    </div>
+  </div>
+</header>
+<main>
+  <section id="view-katalog">
+    <div class="fokusbar">
+      <h2>Meine Fokusbereiche</h2>
+      <p>Wähle die Richtungen, in die du gehen willst: 1× klicken = Hauptfokus, 2× = Nebenfokus, 3× = aus. Passende Module werden oben einsortiert. Die durchgezogen umrandeten Bereiche sind die acht Forschungsbereiche aus der TUM-Studiengangsdokumentation, die gestrichelten sind Ergänzungen. Feste Vertiefungen gibt es nicht, du stellst dein Profil frei zusammen.</p>
+      <div class="chips" id="fokus-chips"></div>
+      <div class="profiles" id="profiles"></div>
+    </div>
+    <div class="layout">
+      <aside id="filters">
+        <h3>Suche</h3>
+        <input class="search" id="q" type="search" placeholder="Titel, Kennung, Lehrstuhl, Inhalt …">
+        <h3>Wahlbereich</h3>
+        <div class="checks" id="f-bereich"></div>
+        <h3>Fokus-Filter</h3>
+        <div class="seg" id="f-fokusmode">
+          <button data-v="alle">Alle Module</button>
+          <button data-v="fokus">Nur meine Fokusbereiche</button>
+        </div>
+        <h3>Sprache</h3>
+        <div class="seg" id="f-sprache"></div>
+        <h3>Turnus</h3>
+        <div class="seg" id="f-turnus"></div>
+        <h3>ECTS</h3>
+        <div class="seg" id="f-ects"></div>
+        <h3>Sonstiges</h3>
+        <div class="checks">
+          <label><input type="checkbox" id="f-nurplan"> nur Module im Plan</label>
+          <label><input type="checkbox" id="f-nurreco"> nur Profil-Empfehlungen</label>
+          <label><input type="checkbox" id="f-ohnevor"> nur ohne Voraussetzungen im Katalog</label>
+          <label><input type="checkbox" id="f-grundlage"> nur Grundlage für andere Module</label>
+          <label id="f-imsem-wrap"><input type="checkbox" id="f-imsem"> <span id="f-imsem-label">nur im aktuellen Semester angeboten</span></label>
+        </div>
+        <p><button class="link-btn" id="reset">Filter zurücksetzen</button></p>
+      </aside>
+      <div>
+        <div class="toolbar">
+          <span class="row"><button class="btn only-mobile" id="toggle-filters">Filter</button>
+            <span class="row" style="gap:4px"><button class="btn small" id="nav-back" disabled title="Zurück">← Zurück</button><button class="btn small" id="nav-fwd" disabled title="Vor">Vor →</button></span>
+            <span id="result-count"></span>
+            <button class="btn small" id="kat-refresh" title="Studienplan und Modulbeschreibungen neu aus TUMonline laden (einige Minuten)">↻ Studienplan aktualisieren</button>
+            <span class="hint" id="kat-status"></span></span>
+          <label>Sortierung
+            <select id="sort">
+              <option value="relevanz">Fokus-Treffer zuerst</option>
+              <option value="grundlagen">Grundlagen zuerst</option>
+              <option value="titel">Titel A–Z</option>
+              <option value="ects">ECTS absteigend</option>
+              <option value="lehrstuhl">Lehrstuhl</option>
+            </select>
+          </label>
+        </div>
+        <div id="kat-msg"></div>
+        <div class="cards" id="cards"></div>
+        <div class="more" id="more"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-wizard" hidden>
+    <div class="panel">
+      <h2>Planer-Assistent <small>Beantworte die Fragen, danach stellt der Assistent einen Semesterplan zusammen, den du anpassen kannst.</small></h2>
+      <div class="wiz-steps" id="wiz-steps"></div>
+      <div id="wiz-body"></div>
+      <div class="wiz-nav">
+        <button class="btn" id="wiz-prev">← Zurück</button>
+        <span class="row">
+          <button class="btn" id="wiz-next">Weiter →</button>
+          <button class="btn primary" id="wiz-gen">Plan-Vorschlag erzeugen</button>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-plan" hidden>
+    <div class="panel">
+      <h2>Semesterplan <small id="plan-sub"></small></h2>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn primary" id="regen">Neu erzeugen (gesperrte &amp; bestandene bleiben)</button>
+        <button class="btn" id="to-wizard">Einstellungen ändern</button>
+        <span class="hint">🔒 = sperren · ↻ = Alternative · ⛔ = nie vorschlagen · × = entfernen. Klick auf den Titel öffnet das Modul im Katalog.</span>
+      </div>
+      <div id="plan-warn"></div>
+    </div>
+    <div class="sems" id="sems"></div>
+    <div class="plan-grid">
+      <div class="panel">
+        <h2>Regeln &amp; Fortschritt <small id="total-sub"></small></h2>
+        <div id="total" class="total"></div>
+        <div id="reqs"></div>
+      </div>
+      <div>
+        <div class="panel">
+          <h2>Fokus-Verteilung <small>ECTS je Fokusbereich</small></h2>
+          <div id="fokus-dist"></div>
+          <p class="hint">Module mit mehreren Fokusbereichen zählen in jedem davon. Die Zuordnung erfolgt automatisch über Lehrstuhl und Titel.</p>
+        </div>
+        <div class="panel">
+          <h2>Daten</h2>
+          <div class="row">
+            <button class="btn" id="export">Plan exportieren (JSON)</button>
+            <label class="btn">Plan importieren <input type="file" id="import" accept="application/json" hidden></label>
+            <button class="btn" id="clear">Geplante Module entfernen</button>
+          </div>
+          <p class="hint">Gespeichert wird nur lokal in diesem Browser. Mit dem Export sicherst du den Plan oder überträgst ihn auf ein anderes Gerät.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="view-semester" hidden>
+    <div class="panel">
+      <h2><span id="sem-title">Aktuelles Semester</span> <small id="sem-sub"></small></h2>
+      <div id="sem-warn"></div>
+      <div class="sem-add">
+        <input class="search" id="sem-q" type="search" placeholder="Fach suchen und zum Semester hinzufügen (Titel, Kennung, Lehrstuhl) …" autocomplete="off">
+        <label class="hint"><input type="checkbox" id="sem-alle"> auch Module ohne Termine in diesem Semester zeigen</label>
+        <div id="sem-hits"></div>
+      </div>
+    </div>
+    <div class="subtabs" id="sem-tabs">
+      <button data-v="auswahl">Auswahl</button>
+      <button data-v="stunden">Stundenplan</button>
+      <button data-v="pruef">Prüfungen</button>
+    </div>
+    <div id="sem-body"></div>
+  </section>
+  <footer id="footer"></footer>
+</main>
+<script src="data/modules.js"></script>
+<script src="data/semester.js" onerror="window.SEMESTER = null"></script>
+<script src="app.js"></script>
+</body>
+</html>
