@@ -167,6 +167,23 @@
     if (C().ausland.an) for (const [b, v] of Object.entries(C().ausland.anr)) if (Number(v)) s[b] = (s[b] || 0) + Number(v);
     return s;
   }
+  // Auslandssemester: Anrechnung auf Flexibilisierung, International Experience und Überfachliche Ergänzung
+  // automatisch auf die CP stellen, die dort nach den übrigen Semestern noch fehlen (außer von Hand verstellt).
+  const AUSL_AUTO = [['MM_F', 15, ['MM_F']], ['IE', 6, ['IE']], ['UE', 5, ['UE', 'UE_E']]];
+  const geplantIn = bs => entries().reduce((t, [id, e]) => t + (bs.includes(e.b) ? M[id].ects : 0), 0);
+  function auslandAuto() {
+    const a = C().ausland;
+    if (!a.manuell || typeof a.manuell !== 'object') a.manuell = {};
+    if (!a.an) return;
+    const auto = b => AUSL_AUTO.some(x => x[0] === b) && !a.manuell[b];
+    // Budget: geplante Auslands-ECTS minus alles, was fest eingestellt ist
+    let budget = (Number(a.ects) || 0) - Object.entries(a.anr).filter(([b]) => !auto(b)).reduce((t, [, v]) => t + (Number(v) || 0), 0);
+    for (const [b, max, bs] of AUSL_AUTO) {
+      if (!auto(b)) continue;
+      const v = Math.max(0, Math.min(max - geplantIn(bs), budget));
+      a.anr[b] = v; budget -= v;
+    }
+  }
   const plannedByKey = () => { const m = new Map(); for (const [id, e] of entries()) m.set(TK[id], e); return m; };
   const sprOk = m => C().sprache === 'beide' || m.sprache === '?' || m.sprache.includes(C().sprache);
   function score(m, b) {
@@ -215,6 +232,7 @@
     const c = C();
     altSkip.clear();
     for (const [id, e] of entries()) if (!fixed(e)) delete S.plan[id];
+    auslandAuto(); // Ausland deckt zuerst ab, was nach den festen Modulen fehlt
     const used = () => new Set(entries().map(([id]) => TK[id]));
     const excluded = new Set(c.ausschluss);
     const missing = [];
@@ -572,7 +590,7 @@
   }
   // gemeinsame Handler für Steuerelemente (Katalog, Semesterplan, Assistent)
   function onCtrlClick(e) {
-    const t = e.target.closest('[data-add],[data-done],[data-rm],[data-jump],[data-lock],[data-alt],[data-ban],[data-toggle],[data-semadd],[data-semrm],[data-semshow],[data-semplan],[data-pz]');
+    const t = e.target.closest('[data-add],[data-done],[data-rm],[data-jump],[data-lock],[data-alt],[data-ban],[data-toggle],[data-semadd],[data-semrm],[data-semshow],[data-semplan],[data-pz],[data-anrauto]');
     if (!t || e.target.closest('select')) return false;
     const d = t.dataset;
     if (d.semadd) { S.semAuswahl[d.semadd] = { seit: new Date().toISOString().slice(0, 10) }; delete S.semAusgeblendet[d.semadd]; }
@@ -585,6 +603,7 @@
     else if (d.semshow) delete S.semAusgeblendet[d.semshow];
     else if (d.semplan) { const m = M[d.semplan]; S.plan[d.semplan] = { b: m.bereiche.find(x => x !== 'AUF') || m.bereiche[0], sem: curPlanSem(), st: 'geplant', lock: true }; }
     else if (d.pz) cyclePraesenz(Number(d.pz));
+    else if (d.anrauto) delete C().ausland.manuell[d.anrauto];
     else if (d.add) addToPlan(d.add);
     else if (d.done) addToPlan(d.done, 'bestanden');
     else if (d.rm) delete S.plan[d.rm];
@@ -600,9 +619,12 @@
     if (d.st) { const x = S.plan[d.st]; x.st = t.value; if (x.st === 'bestanden' && !x.sem) x.sem = Math.max(1, C().aktSem - 1); }
     else if (d.sem) S.plan[d.sem].sem = t.value ? Number(t.value) : null;
     else if (d.assign) S.plan[d.assign].b = t.value;
+    else if (d.anr) { const a = C().ausland; a.anr[d.anr] = Number(t.value); a.manuell[d.anr] = true; }
     else return;
     save(); renderCurrent(); renderPlanCount();
   }
+  // Auslands-Schieberegler: Zahl beim Ziehen mitführen, übernommen wird beim Loslassen (change)
+  $('sems').addEventListener('input', e => { const b = e.target.dataset && e.target.dataset.anr; if (b) { const v = e.target.closest('.anr-row').querySelector('[data-anrv]'); if (v) v.textContent = e.target.value; } });
   // aufgeklappte Bereichslisten bleiben nach dem Neuzeichnen offen
   $('reqs').addEventListener('toggle', e => { const d = e.target.closest && e.target.closest('details[data-req]'); if (d) d.open ? reqOpen.add(d.dataset.req) : reqOpen.delete(d.dataset.req); }, true);
   for (const el of ['cards', 'sems', 'reqs', 'wiz-body', 'view-semester']) {
@@ -639,6 +661,19 @@
       ${w.filter(x => x.lvl !== 'info' || x.pre).map(x => `<div class="it-warn" style="${x.lvl === 'bad' ? 'color:var(--bad)' : x.lvl === 'info' ? 'color:var(--muted)' : ''}">⚠ ${esc(x.t)}</div>`).join('')}
     </div>`;
   }
+  function auslandHtml() {
+    const a = C().ausland, sumA = Object.values(a.anr).reduce((t, v) => t + (Number(v) || 0), 0), ects = auslandCP();
+    const andere = Object.entries(a.anr).filter(([b, v]) => Number(v) && !AUSL_AUTO.some(x => x[0] === b));
+    return `<div class="item ausl"><div class="it-top"><span class="it-title" style="cursor:default">🌍 Auslandssemester</span><span class="it-cp">${ects} CP</span></div>
+      <div class="hint" style="margin:2px 0 4px">Anrechnung je Bereich. Steht ein Regler auf „auto“, füllt er die CP auf, die dort nach deinen übrigen Semestern noch fehlen.</div>
+      ${AUSL_AUTO.map(([b, max, bs]) => { const v = Number(a.anr[b]) || 0, man = !!a.manuell[b], g = geplantIn(bs), fehlt = Math.max(0, max - g);
+        return `<div class="anr-row"><div class="anr-head"><span>${SHORT[b]}</span><span><b data-anrv="${b}">${v}</b> CP · ${man ? `<button class="link-btn" data-anrauto="${b}" title="Wieder automatisch auf die fehlenden CP stellen">↺ auto</button>` : '<span class="anr-auto">auto</span>'}</span></div>
+          <input type="range" min="0" max="${max}" step="1" value="${v}" data-anr="${b}" aria-label="${esc(B[b].name)}: Auslands-CP">
+          <div class="anr-info">${g ? `${g} CP schon in anderen Semestern, ` : ''}${fehlt ? `fehlen ${fehlt} von ${b === 'MM_F' ? 'max. ' : ''}${max}` : `${b === 'MM_F' ? 'Maximum' : 'Soll'} schon erfüllt`}${v > fehlt ? ` · ${v - fehlt} CP mehr als nötig` : ''}</div></div>`; }).join('')}
+      ${andere.length ? `<div class="it-meta">${andere.map(([b, v]) => `<span class="tag b">${SHORT[b]}: ${v}</span>`).join('')}<span class="hint">(im Assistenten)</span></div>` : ''}
+      <div class="anr-sum ${sumA > ects ? 'bad' : sumA < ects ? 'warn' : 'ok'}">Angerechnet ${sumA} von ${ects} ECTS${sumA < ects ? ` · ${ects - sumA} ECTS ohne Anrechnung` : sumA > ects ? ' · mehr als geplant' : ''}</div>
+    </div>`;
+  }
   function renderSems(an) {
     const c = C(), cap = capacities(), load = semLoad();
     const bySem = {};
@@ -652,8 +687,7 @@
         <h3><span>${s}. Semester</span><span class="cp">${l}${cp != null ? ' / ' + cp : ''} CP</span></h3>
         <div class="semsub">${info.label}${past ? ' · abgeschlossen' : ''}${isAbroad(s) ? ' · Auslandssemester' : ''}${s === Number(c.thesisSem) ? ' · Thesis' : ''}</div>
         ${cp ? `<div class="bar ${l > cp + 3 ? 'bad' : Math.abs(l - cp) <= 3 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>` : ''}
-        ${isAbroad(s) ? `<div class="item"><div class="it-top"><span class="it-title" style="cursor:default">🌍 Auslandssemester</span><span class="it-cp">${auslandCP()} CP</span></div>
-          <div class="it-meta">${Object.entries(c.ausland.anr).filter(([, v]) => Number(v)).map(([b, v]) => `<span class="tag b">${SHORT[b]}: ${v}</span>`).join('') || '<span class="hint">keine Anrechnung festgelegt</span>'}</div></div>` : ''}
+        ${isAbroad(s) ? auslandHtml() : ''}
         ${ord(bySem[s]).map(([id, e]) => itemHtml(id, e, an.per)).join('') || (isAbroad(s) ? '' : '<p class="hint">Noch leer.</p>')}
       </div>`;
     }
@@ -697,6 +731,7 @@
       <div class="bar ${cls === 'ok' ? 'ok' : cls === 'bad' ? 'bad' : ''}"><i style="width:${pct}%"></i></div><div class="status ${cls}">${status}</div>${bs ? reqMods(bs) : ''}</div>`;
   }
   function renderPlan() {
+    auslandAuto();
     const an = analyse(), s = bucketSums();
     const mm = MM.reduce((t, b) => t + (s[b] || 0), 0), ue = (s.UE || 0) + (s.UE_E || 0);
     const total = Object.entries(s).filter(([b]) => b !== 'AUF').reduce((t, [, v]) => t + v, 0);
@@ -776,8 +811,10 @@
   // Die verbundene Datei ist der maßgebliche Stand: Jede Plan-Änderung wird nach kurzer Pause hineingeschrieben,
   // beim Öffnen wird sie geladen. Das Datei-Handle bleibt in IndexedDB gespeichert. localStorage ist nur Zwischenspeicher.
   const D_ = { h: null, status: 'aus', inhalt: null, stand: null, mod: 0, zuletzt: null, fehler: '', konflikt: null, menu: false };
+  auslandAuto();
   let letzterInhalt = planInhalt(), dTimer = null, dQueue = Promise.resolve();
   nachAenderung = () => {
+    auslandAuto();
     const i = planInhalt(); if (i === letzterInhalt) return;
     letzterInhalt = i; S.geaendert = new Date().toISOString();
     dateiPlanen();
@@ -1047,6 +1084,7 @@
       </div>
       <div class="q"><span class="ql">Worauf sollen die Auslands-ECTS angerechnet werden?</span>
         <p class="hint">Typisch ist die Flexibilisierung (bis 15 CP, auch für Mastermodule ohne Gegenstück an der TUM) und International Experience (6 CP, jedes Modul kann durch ein Auslandsmodul ersetzt werden). Für Kernfächer oder Grundlagen braucht es ein inhaltlich gleichwertiges Modul, das klärst du vorab mit dem Learning Agreement.</p>
+        <p class="hint">Flexibilisierung, International Experience und Überfachliche Ergänzung stellt die App automatisch auf die CP, die dort noch fehlen. In „Mein Plan“ kannst du sie am Auslandssemester per Schieberegler ändern. Eine Zahl, die du hier einträgst, gilt als von Hand gesetzt.</p>
         <div class="grid2">${['MM_F', 'IE', 'MM_K', 'MM_G', 'MM_A', 'HP', 'UE'].map(b => `<div><div class="hint" style="margin:0 0 3px">${esc(B[b].name)}</div>${num('ausland.anr.' + b, c.ausland.anr[b] ?? 0, 0, 30)} CP</div>`).join('')}</div>
         <div class="${sumA === Number(c.ausland.ects) ? 'okbox' : 'warnbox'}" style="margin-top:8px">Angerechnet: ${sumA} von ${c.ausland.ects} ECTS${sumA < c.ausland.ects ? ` – ${c.ausland.ects - sumA} ECTS würden nicht angerechnet` : sumA > c.ausland.ects ? ' – mehr angerechnet als geplant' : ''}</div>
         ${Number(c.ausland.anr.MM_F) > 15 ? '<div class="warnbox bad">Flexibilisierung: max. 15 CP.</div>' : ''}
@@ -1064,7 +1102,7 @@
       const sum = zielSum();
       const sl = (b, min, max, hint) => `<div class="q"><label>${esc(B[b].name)}</label><p class="hint">${hint}${anr(b) ? ` · davon ${anr(b)} CP aus dem Ausland` : ''}</p>
         <div class="slider"><input type="range" min="${min}" max="${max}" step="1" data-cfg="ziel.${b}" value="${c.ziel[b]}"><span><b>${c.ziel[b]}</b> CP</span></div>
-        ${Number(c.ziel[b]) < anr(b) ? '<div class="warnbox bad">Weniger als die Auslands-Anrechnung.</div>' : ''}</div>`;
+        ${Number(c.ziel[b]) < anr(b) && (b !== 'MM_F' || (c.ausland.manuell || {}).MM_F) ? '<div class="warnbox bad">Weniger als die Auslands-Anrechnung.</div>' : ''}</div>`;
       return `<p class="hint">Die 60 CP Mastermodule verteilst du auf vier Wahlbereiche. Einen Bereich lässt du leer, indem du ihn auf 0 stellst (geht nur bei Angrenzenden Fachgebieten und Flexibilisierung).</p>
         ${sl('MM_G', 20, 60, 'Pflicht: mindestens 20 CP. Breite Grundlagen (z. B. FEM, Gasdynamik, Regelungstechnik).')}
         ${sl('MM_K', 0, 40, 'Höchstens 40 CP. Hier liegt der größte Teil der Fokus-Module.')}
@@ -1113,7 +1151,7 @@
     if (zielSum() !== 60) errs.push(`Die Wahlbereiche ergeben ${zielSum()} statt 60 CP (Schritt „Wahlbereiche“).`);
     if (Number(c.ziel.MM_G) < 20) errs.push('Ingenieurwiss. Grundlagen brauchen mind. 20 CP.');
     if (c.ausland.an && Number(c.ausland.sem) === Number(c.thesisSem)) errs.push('Auslandssemester und Thesis liegen im selben Semester.');
-    for (const b of MM) if (Number(c.ziel[b]) < anr(b)) errs.push(`${B[b].name}: Ziel ist kleiner als die Auslands-Anrechnung.`);
+    for (const b of MM) if (Number(c.ziel[b]) < anr(b) && (b !== 'MM_F' || (c.ausland.manuell || {}).MM_F)) errs.push(`${B[b].name}: Ziel ist kleiner als die Auslands-Anrechnung.`);
     return errs;
   }
   function renderWizard() {
@@ -1146,6 +1184,7 @@
   });
   $('wiz-body').addEventListener('change', e => {
     const t = e.target, d = t.dataset;
+    if (d.cfg && d.cfg.startsWith('ausland.anr.')) { const a = C().ausland; a.manuell = a.manuell || {}; a.manuell[d.cfg.slice(12)] = true; }
     if (d.cfg) { setCfg(d.cfg, t.type === 'checkbox' ? t.checked : (t.type === 'number' || t.type === 'range' || /Sem$|sem$|fpArt/.test(d.cfg) && d.cfg !== 'fpArt') ? Number(t.value) : t.value); }
     else if (d.cpziel) { if (t.value === '') delete C().cpZiel[d.cpziel]; else C().cpZiel[d.cpziel] = Number(t.value); }
     else if (d.hpsem) C().hpSem[Number(d.hpsem)] = Number(t.value);

@@ -66,6 +66,7 @@ Danach erzeugt der Assistent einen Plan-Vorschlag. Er beachtet Turnus (WiSe/SoSe
 ### Mein Plan
 - Eine Spalte pro Semester. Je Modul: Semester ändern, Status ändern, 🔒 sperren, ↻ Alternative, ⛔ nie vorschlagen, × entfernen.
 - „Neu erzeugen“ behält bestandene, belegte und gesperrte Module.
+- **Auslandssemester:** In der Karte des Auslandssemesters gibt es je einen Schieberegler für Flexibilisierung, International Experience und Überfachliche Ergänzung. Auf „auto“ stellt sich jeder Regler auf die CP, die im Bereich nach den übrigen Semestern noch fehlen. Beispiel: 5 CP Flexi schon geplant, dann stehen 10 CP im Ausland, bis max. 15 erreicht sind. Mehr als die geplanten Auslands-ECTS werden nicht verteilt. Ziehst du einen Regler von Hand, bleibt dein Wert, bis du auf „↺ auto“ klickst. „Neu erzeugen“ plant diese Bereiche dann nicht mehr zu Hause ein.
 - **Regeln & Fortschritt:** Unter jedem Bereich lässt sich „N Module anzeigen“ aufklappen. Dann siehst du, welche Module aus deinem Plan dort zählen. Je Modul stehen der Turnus (WiSe/SoSe), das geplante Semester, der Status und die ECTS. Mit × nimmst du es aus dem Plan, ein Klick auf den Titel öffnet es im Katalog. Angerechnete Auslands-CP stehen mit dabei.
 - **Warnungen:**
   - Turnus passt nicht zum Semester

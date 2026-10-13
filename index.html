@@ -158,6 +158,13 @@ aside h3:first-child { margin-top: 0; }
 .item .it-title:hover { color: var(--accent); }
 .item .it-cp { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .item .it-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; align-items: center; }
+.item.ausl .anr-row { margin: 6px 0; }
+.item.ausl .anr-head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.item.ausl .anr-auto { color: var(--muted); font-size: 12px; }
+.item.ausl input[type=range] { width: 100%; margin: 2px 0 0; accent-color: var(--accent); }
+.item.ausl .anr-info { color: var(--muted); font-size: 12px; }
+.item.ausl .anr-sum { font-size: 12px; margin-top: 6px; font-weight: 600; }
+.item.ausl .anr-sum.ok { color: var(--ok); } .item.ausl .anr-sum.warn { color: var(--warn); } .item.ausl .anr-sum.bad { color: var(--bad); }
 .item .it-meta select { font-size: 12px; padding: 1px 3px; max-width: 135px; }
 .item .it-warn { font-size: 12px; color: var(--warn); margin-top: 2px; }
 .item.fixed .it-title::before { content: "✓ "; color: var(--ok); }
