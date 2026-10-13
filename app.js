@@ -816,9 +816,54 @@
   nachAenderung = () => {
     auslandAuto();
     const i = planInhalt(); if (i === letzterInhalt) return;
+    if (!vZurueck) verlaufMerken(letzterInhalt);
     letzterInhalt = i; S.geaendert = new Date().toISOString();
-    dateiPlanen();
+    dateiPlanen(); verlaufKnoepfe();
   };
+
+  // ---------- Verlauf (Rückgängig / Wiederholen) ----------
+  // Stände sind planInhalt()-Texte, also derselbe Inhalt wie die Plan-Datei; wiederhergestellt über planAusJson().
+  const vUndo = [], vRedo = [];
+  let vZurueck = false;
+  function verlaufMerken(alt) { vUndo.push(alt); if (vUndo.length > 100) vUndo.shift(); vRedo.length = 0; }
+  // kurze Beschreibung, was sich zwischen zwei Ständen am Plan ändert
+  function verlaufText(von, nach) {
+    const a = new Map(JSON.parse(von).plan.map(p => [p.id, p])), b = new Map(JSON.parse(nach).plan.map(p => [p.id, p]));
+    const t = id => '„' + (M[id] ? M[id].titel : id) + '“';
+    const rein = [...b.keys()].filter(id => !a.has(id)), raus = [...a.keys()].filter(id => !b.has(id));
+    const geaendert = [...b.keys()].filter(id => a.has(id) && JSON.stringify(a.get(id)) !== JSON.stringify(b.get(id)));
+    const liste = ids => ids.length > 2 ? `${ids.length} Module` : ids.map(t).join(' und ');
+    const teile = [];
+    if (rein.length) teile.push(`${liste(rein)} wieder im Plan`);
+    if (raus.length) teile.push(`${liste(raus)} aus dem Plan genommen`);
+    if (geaendert.length) teile.push(`${liste(geaendert)} geändert (Semester, Status oder Bereich)`);
+    return teile.join(', ') || 'Einstellungen bzw. Semesterauswahl zurückgesetzt';
+  }
+  function verlaufGehen(zurueck) {
+    const von = zurueck ? vUndo : vRedo, nach = zurueck ? vRedo : vUndo;
+    if (!von.length) return;
+    const ziel = von.pop(), vorher = letzterInhalt;
+    nach.push(vorher);
+    vZurueck = true;
+    try { Object.assign(S, planAusJson(JSON.parse(ziel))); save(); } finally { vZurueck = false; }
+    renderAll(); renderPlanCount(); verlaufKnoepfe();
+    flashMsg((zurueck ? 'Rückgängig: ' : 'Wiederholt: ') + verlaufText(vorher, ziel) + '.');
+  }
+  function verlaufKnoepfe() {
+    const u = $('undo'), r = $('redo'); if (!u) return;
+    u.disabled = !vUndo.length; r.disabled = !vRedo.length;
+    u.title = vUndo.length ? 'Rückgängig (Strg+Z): ' + verlaufText(letzterInhalt, vUndo[vUndo.length - 1]) : 'Nichts rückgängig zu machen';
+    r.title = vRedo.length ? 'Wiederholen (Strg+Y): ' + verlaufText(letzterInhalt, vRedo[vRedo.length - 1]) : 'Nichts zu wiederholen';
+  }
+  $('undo').addEventListener('click', () => verlaufGehen(true));
+  $('redo').addEventListener('click', () => verlaufGehen(false));
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]'))) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); verlaufGehen(true); }
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); verlaufGehen(false); }
+  });
+  verlaufKnoepfe();
   const dTask = fn => (dQueue = dQueue.then(fn).catch(e => dFehler(e)));
   const fmtZeit = iso => iso ? new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : 'unbekannt';
   function idb(mode, fn) {
@@ -859,7 +904,8 @@
   function dateiUebernehmen(j, f) {
     Object.assign(S, planAusJson(j));
     S.geaendert = j.geaendert || new Date(f.lastModified).toISOString();
-    letzterInhalt = planInhalt(); save();
+    if (planInhalt() !== letzterInhalt) verlaufMerken(letzterInhalt);
+    letzterInhalt = planInhalt(); save(); verlaufKnoepfe();
     D_.inhalt = letzterInhalt; D_.stand = j.geaendert || null; D_.mod = f.lastModified;
     D_.zuletzt = new Date(f.lastModified); D_.status = 'ok'; D_.konflikt = null;
     renderAll(); dateiRender();
@@ -940,7 +986,9 @@
     try {
       const j = JSON.parse(await file.text());
       Object.assign(S, planAusJson(j));
-      S.geaendert = j.geaendert || new Date(file.lastModified).toISOString(); letzterInhalt = planInhalt();
+      S.geaendert = j.geaendert || new Date(file.lastModified).toISOString();
+      if (planInhalt() !== letzterInhalt) verlaufMerken(letzterInhalt);
+      letzterInhalt = planInhalt(); verlaufKnoepfe();
       Object.assign(S, { dateiName: file.name, dateiGespeichert: S.geaendert, dateiZeit: new Date(file.lastModified).toISOString() });
       D_.frage = false; save(); renderAll(); dateiRender();
     } catch (e) { flashMsg('Die Datei ist keine Plan-Datei dieser App.'); }
