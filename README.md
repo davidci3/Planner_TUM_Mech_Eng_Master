@@ -46,7 +46,7 @@ Diese Browser erlauben Webseiten nicht, eine Datei auf dem PC zu überschreiben.
 `index.html` per Doppelklick im Browser öffnen. Der Ordner `data/` und `app.js` müssen daneben liegen. Lokal gibt es zusätzlich die Aktualisieren-Knöpfe (über den Hilfsdienst, siehe unten). Ohne Plan-Datei ist der lokale Plan getrennt vom Plan auf der Online-Seite, weil der Browser je Adresse getrennt speichert. Mit derselben Plan-Datei nutzen beide denselben Stand.
 
 ### Katalog
-- Suche und Filter nach Wahlbereich, Sprache, Turnus und ECTS.
+- Suche und Filter nach Wahlbereich, Sprache, Turnus und ECTS. Bei einer Suche stehen die besten Titel-Treffer oben: gleicher Titel oder gleiche Kennung zuerst, dann Titel, die mit dem Suchbegriff beginnen oder ihn enthalten. Module, die den Begriff nur im Inhaltstext haben, folgen danach in der gewählten Sortierung.
 - **Fokusbereiche:** 1× klicken = Hauptfokus, 2× = Nebenfokus, 3× = aus. Die TUM-Beispielprofile markieren empfohlene Module mit ★.
 - **Voraussetzungen:** Die Tags „⬑ baut auf N“ und „⇢ Grundlage für N“ zeigen die Abhängigkeiten. In den Details sind die Module verlinkt, ein Klick springt zum Modul. Zusätzliche Filter: „nur ohne Voraussetzungen“ und „nur Grundlage für andere“; Sortierung „Grundlagen zuerst“.
 - **„← Zurück“ / „Vor →“:** Ein Klick auf einen Modul-Link (Voraussetzungen, „Grundlage für“, Titel in Plan oder Semester) springt zum Modul. Mit „← Zurück“ siehst du wieder genau die vorige Ansicht: Tab, Suche und Filter, aufgeklappte Module und Scrollposition. Die Zurück-Taste von Browser oder Maus und Alt+← funktionieren genauso.
@@ -61,7 +61,7 @@ Diese Browser erlauben Webseiten nicht, eine Datei auf dem PC zu überschreiben.
 Sieben Schritte:
 1. Studienbeginn, Semesteranzahl, aktuelles Semester und CP pro Semester
 2. Bestandene und belegte Module, Auflagen
-3. Auslandssemester: Semester, ECTS und auf welche Bereiche sie angerechnet werden
+3. Auslandssemester: Semester, ECTS, auf welche Bereiche sie angerechnet werden und ob es ein Urlaubssemester (Beurlaubung) ist
 4. Fokusbereiche und Sprache
 5. Verteilung der 60 CP Mastermodule (Bereiche auf 0 = leer lassen)
 6. Forschungspraxis, Thesis und Praktika-Semester
@@ -81,8 +81,11 @@ Danach erzeugt der Assistent einen Plan-Vorschlag. Er beachtet Turnus (WiSe/SoSe
   - Semester überladen
   - CP-Regeln verletzt
   - Thesis vor 80 CP
-  - APSO-Fortschrittsgrenzen
-- Gespeichert wird im Browser und, wenn verbunden, automatisch in der Plan-Datei. Export und Import als JSON gibt es zusätzlich (auch alte Exporte lassen sich als Plan-Datei öffnen).
+  - Mindest-Credits der Studienfortschrittskontrolle verfehlt
+  - Modul im Urlaubssemester geplant (dort sind an der TUM nur Wiederholungsprüfungen möglich)
+- **Studienfortschritt:** Zeigt für das Ende jedes Fachsemesters, wie weit dein Plan über oder unter den Mindest-Credits liegt. Nach APSO § 10 Abs. 4 sind das 30 / 60 / 90 / 120 CP bis Ende des 3. / 4. / 5. / 6. Fachsemesters. Dazu kommt nach FPSO § 38 ein bestandenes Mastermodul aus Grundlagen, Kernfächern oder Angrenzenden Fachgebieten bis Ende des 2. Fachsemesters. Je Grenze gibt es einen Balken: grün = bestanden, blau = geplant oder belegt, Strich = Minimum, daneben der Puffer bzw. was fehlt. Zeilen „nach Planende“ (orange) zeigen, was gälte, wenn du länger studierst und der Plan noch nicht voll ist. Gezählt werden alle Module des Plans außer Auflagen.
+- **Urlaubssemester:** Ein Auslandssemester als Urlaubssemester zählt nicht als Fachsemester, die Grenzen verschieben sich also um ein Semester. Die Auslands-CP zählen erst ab dem Folgesemester, weil sie dort anerkannt werden. Werden mind. 30 Credits anerkannt, folgt eine Höherstufung (je weitere 22 Credits ein Semester mehr). Dann zählt das Semester doch als Fachsemester, und die App rechnet es so.
+- Gespeichert wird im Browser und, wenn verbunden, automatisch in der Plan-Datei. Alte Exporte (`mw-masterplan.json`) lassen sich mit „Plan-Datei öffnen…“ laden.
 
 ### Aktuelles Semester (Tab „WiSe 26/27“)
 Für das laufende Semester sind alle Lehrveranstaltungen mit Terminen und alle bereits eingetragenen Prüfungstermine aus TUMonline hinterlegt.

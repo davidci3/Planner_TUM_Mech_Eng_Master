@@ -124,6 +124,23 @@ aside h3:first-child { margin-top: 0; }
 .fbar .bar { margin: 0; height: 10px; }
 .fbar .v { text-align: right; font-variant-numeric: tabular-nums; }
 .hint { color: var(--muted); font-size: 13px; }
+/* Studienfortschritt (APSO § 10) */
+.fs-sum { margin-bottom: 12px; }
+.fs-row { margin-bottom: 14px; }
+.fs-head { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.fs-diff { font-weight: 700; white-space: nowrap; }
+.fs-row.ok .fs-diff { color: var(--ok); } .fs-row.bad .fs-diff { color: var(--bad); }
+.fs-track { position: relative; height: 10px; background: var(--surface2); border-radius: 5px; margin: 8px 0 4px; }
+.fs-track i { position: absolute; top: 0; bottom: 0; }
+.fs-track .fs-done { left: 0; background: var(--ok); border-radius: 5px 0 0 5px; }
+.fs-track .fs-plan { background: var(--accent); opacity: .55; }
+.fs-row.bad .fs-track .fs-plan { background: var(--bad); }
+.fs-knob { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ok); box-sizing: border-box; }
+.fs-row.bad .fs-knob { border-color: var(--bad); }
+.fs-min { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); }
+.fs-row .status { color: var(--muted); }
+.fs-row.urlaub { color: var(--muted); font-size: 13px; }
+.fs-row.spaeter .fs-diff { color: var(--warn); } .fs-row.spaeter .fs-track .fs-plan { background: var(--warn); } .fs-row.spaeter .fs-knob { border-color: var(--warn); }
 .warnbox, .okbox, .infobox { border-radius: 8px; padding: 7px 12px; font-size: 13px; margin-bottom: 6px; }
 .warnbox { background: var(--warn-soft); color: var(--warn); }
 .warnbox.bad { background: var(--bad-soft); color: var(--bad); }
@@ -409,15 +426,8 @@ footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
           <p class="hint">Module mit mehreren Fokusbereichen zählen in jedem davon. Die Zuordnung erfolgt automatisch über Lehrstuhl und Titel.</p>
         </div>
         <div class="panel">
-          <h2>Daten</h2>
-          <div class="row">
-            <button class="btn primary datei-nur" data-datei="neu" hidden>Neue Plan-Datei…</button>
-            <button class="btn datei-nur" data-datei="oeffnen" hidden>Plan-Datei öffnen…</button>
-            <button class="btn" id="export">Plan exportieren (JSON)</button>
-            <label class="btn">Plan importieren <input type="file" id="import" accept="application/json" hidden></label>
-            <button class="btn" id="clear">Geplante Module entfernen</button>
-          </div>
-          <p class="hint" id="daten-hint"></p>
+          <h2>Studienfortschritt <small>Mindest-Credits je Fachsemester</small></h2>
+          <div id="fortschritt"></div>
         </div>
       </div>
     </div>

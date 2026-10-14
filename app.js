@@ -20,7 +20,7 @@
   const KEY = 'mw-faecheruebersicht-v1';
   const defCfg = () => ({
     startTyp: 'W', startJahr: new Date().getFullYear(), aktSem: 1, semester: 4, cpZiel: {},
-    ausland: { an: false, sem: 3, ects: 30, anr: { MM_G: 0, MM_K: 0, MM_A: 0, MM_F: 15, HP: 0, IE: 6, UE: 0 } },
+    ausland: { an: false, urlaub: false, sem: 3, ects: 30, anr: { MM_G: 0, MM_K: 0, MM_A: 0, MM_F: 15, HP: 0, IE: 6, UE: 0 } },
     sprache: 'beide', ziel: { MM_G: 20, MM_K: 25, MM_A: 0, MM_F: 15 },
     fpArt: (FP_MODS.find(m => /Semesterarbeit/.test(m.titel)) || FP_MODS[0] || {}).id || null,
     fpSem: 3, thesisSem: 4, hpSem: [2, 3], maxModule: 7, vorausStreng: true, auflagen: false, ausschluss: [],
@@ -97,6 +97,20 @@
   const isAbroad = s => C().ausland.an && Number(C().ausland.sem) === s;
   const auslandCP = () => C().ausland.an ? Number(C().ausland.ects) || 0 : 0;
   const anr = b => C().ausland.an ? Number(C().ausland.anr[b]) || 0 : 0;
+  const isUrlaub = s => isAbroad(s) && !!C().ausland.urlaub;
+  // angerechnete Auslands-CP (höchstens so viele, wie dort gemacht werden)
+  const auslandAnr = () => C().ausland.an ? Math.min(auslandCP(), Object.values(C().ausland.anr).reduce((t, v) => t + (Number(v) || 0), 0)) : 0;
+  // Urlaubssemester zählen nicht als Fachsemester. Werden dort mind. 30 Credits anerkannt, folgt eine Höherstufung
+  // um ein Semester, je weitere 22 Credits um eines mehr (TUM, Beurlaubung)
+  const hoeherstufung = () => (x => x >= 30 ? 1 + Math.floor((x - 30) / 22) : 0)(auslandAnr());
+  // Fachsemester eines Plan-Semesters (null = Urlaubssemester)
+  function fachSem(s) {
+    const a = C().ausland, u = Number(a.sem);
+    if (!a.an || !a.urlaub || s < u) return s;
+    const h = hoeherstufung();
+    // mit Höherstufung zählt das Semester doch als Fachsemester (bei mehr als 1 springt es danach weiter)
+    return s === u ? (h ? u : null) : s - 1 + h;
+  }
 
   // ---------- Aktuelles Semester: Daten (Kurse, Termine, Präsenzpflicht, Prüfungen) ----------
   const SEMD = window.SEMESTER || null;
@@ -361,6 +375,54 @@
     return null;
   }
 
+  // ---------- Studienfortschritt (APSO § 10 Abs. 4, FPSO § 38 Abs. 2) ----------
+  const APSO_MIN = [[3, 30], [4, 60], [5, 90], [6, 120]];
+  function fortschritt() {
+    const a = C().ausland, sems = semList();
+    const fsList = sems.map(fachSem).filter(f => f != null), maxFS = fsList.length ? Math.max(...fsList) : 0;
+    // letztes Plan-Semester, das bis Fachsemester k gehört
+    const endeVon = k => { let r = null; for (const s of sems) { const f = fachSem(s); if (f != null && f <= k) r = s; } return r; };
+    // CP bis Ende von Plan-Semester s (ohne Auflagen). Aus einem Urlaubssemester zählen sie erst nach der Anerkennung im Folgesemester.
+    const bis = s => {
+      let t = 0, b = 0;
+      for (const [id, e] of entries()) if (e.sem && e.sem <= s && e.b !== 'AUF') { t += M[id].ects; if (e.st === 'bestanden') b += M[id].ects; }
+      if (a.an && (a.urlaub && !hoeherstufung() ? Number(a.sem) < s : Number(a.sem) <= s)) t += auslandAnr();
+      return { t, b };
+    };
+    const gesamt = bis(Infinity).t, rows = [];
+    for (const [k, need] of APSO_MIN) {
+      const s = k <= maxFS ? endeVon(k) : null;
+      if (!s && gesamt >= need) continue; // nach Planende und schon erreicht
+      rows.push({ k, need, s, ...bis(s || Infinity) });
+    }
+    const s2 = maxFS >= 2 ? endeVon(2) : null;
+    const mmMod = s2 ? entries().filter(([, e]) => e.sem && e.sem <= s2 && ['MM_G', 'MM_K', 'MM_A'].includes(e.b)).sort((x, y) => x[1].sem - y[1].sem)[0] : null;
+    return { rows, mm: s2 ? { s: s2, ok: !!mmMod, id: mmMod && mmMod[0] } : null, urlaub: a.an && a.urlaub ? Number(a.sem) : null };
+  }
+  function renderFortschritt() {
+    const fp = fortschritt(), max = Math.max(120, ...fp.rows.map(r => r.t));
+    const pct = v => Math.min(100, v / max * 100);
+    const knapp = fp.rows.filter(r => r.s).sort((x, y) => (x.t - x.need) - (y.t - y.need))[0];
+    const fehler = fp.rows.filter(r => r.s && r.t < r.need).length + (fp.mm && !fp.mm.ok ? 1 : 0);
+    if (!entries().length) { $('fortschritt').innerHTML = '<p class="hint">Noch kein Plan.</p>'; return; }
+    let h = `<div class="fs-sum ${fehler ? 'warnbox bad' : 'okbox'}">${fehler ? `${fehler === 1 ? 'Eine Grenze wird' : fehler + ' Grenzen werden'} mit deinem Plan verfehlt.` : `Alle Grenzen eingehalten.${knapp ? ` Am knappsten: Ende ${knapp.k}. Fachsemester mit ${knapp.t - knapp.need} CP Puffer.` : ''}`}</div>`;
+    if (fp.mm) {
+      const m = fp.mm.id && M[fp.mm.id];
+      h += `<div class="fs-row ${fp.mm.ok ? 'ok' : 'bad'}"><div class="fs-head"><span><b>Ende 2. Fachsemester</b> <span class="hint">${semInfo(fp.mm.s).label}</span></span><span class="fs-diff">${fp.mm.ok ? '✓' : '✗'}</span></div>
+        <div class="status">${fp.mm.ok ? `Mastermodul ohne Flexibilisierung: <button class="link-btn" data-jump="${fp.mm.id}">${esc(m.titel)}</button> (${ST[S.plan[fp.mm.id].st]})` : 'Bis hier muss ein Mastermodul aus Grundlagen, Kernfächern oder Angrenzenden Fachgebieten bestanden sein.'}</div></div>`;
+    }
+    for (const r of fp.rows) {
+      const diff = r.t - r.need, ok = diff >= 0;
+      // nach Planende nur ein Hinweis (der Plan ist dort einfach noch nicht voll), kein Fehler
+      h += `<div class="fs-row ${ok ? 'ok' : r.s ? 'bad' : 'spaeter'}"><div class="fs-head"><span><b>Ende ${r.k}. Fachsemester</b> <span class="hint">${r.s ? semInfo(r.s).label : 'nach Planende'}</span></span><span class="fs-diff">${ok ? '+' : '−'}${Math.abs(diff)} CP</span></div>
+        <div class="fs-track" role="img" aria-label="${r.t} von mindestens ${r.need} CP"><i class="fs-done" style="width:${pct(r.b)}%"></i><i class="fs-plan" style="left:${pct(r.b)}%;width:${pct(r.t) - pct(r.b)}%"></i><span class="fs-min" style="left:${pct(r.need)}%"></span><span class="fs-knob" style="left:${pct(r.t)}%"></span></div>
+        <div class="status">${r.t} CP${r.b ? `, davon ${r.b} bestanden` : ''} · mind. ${r.need}${r.s ? '' : ' (falls du länger studierst)'}</div></div>`;
+    }
+    if (fp.urlaub) h += `<div class="fs-row urlaub">🌍 ${semInfo(fp.urlaub).label} ist ein Urlaubssemester und zählt nicht als Fachsemester. Die Auslands-CP zählen erst, wenn sie im folgenden Semester anerkannt sind.${hoeherstufung() ? ` Mit ${auslandAnr()} anerkannten CP wirst du um ${hoeherstufung()} Semester höhergestuft, das Semester zählt dann doch.` : ''}</div>`;
+    h += '<p class="hint">Nach APSO § 10 Abs. 4 und FPSO § 38: Wer eine Grenze verfehlt, dessen offene Prüfungen gelten als endgültig nicht bestanden (bei 120 CP nach dem 6. Fachsemester gibt es ein Semester Aufschub). Mit triftigem Grund kann der Prüfungsausschuss auf Antrag die Frist verlängern. Gezählt werden die Module deines Plans bis zum Ende des Semesters, ohne Auflagen. Grün = bestanden, blau = geplant oder belegt, Strich = Minimum.</p>';
+    $('fortschritt').innerHTML = h;
+  }
+
   // ---------- Warnungen ----------
   function analyse() {
     const c = C(), per = {}, glob = [], pk = plannedByKey(), load = semLoad(), cap = capacities();
@@ -369,7 +431,7 @@
       if (e.st === 'geplant') {
         if (!e.sem) w.push({ t: 'Noch keinem Semester zugeordnet', lvl: 'warn' });
         else if (!turnusOk(m, e.sem)) w.push({ t: `Wird laut TUMonline nur im ${m.turnus} angeboten, nicht im ${semInfo(e.sem).label}`, lvl: 'bad' });
-        if (e.sem && isAbroad(e.sem)) w.push({ t: 'Liegt im Auslandssemester', lvl: 'warn' });
+        if (e.sem && isAbroad(e.sem) && !isUrlaub(e.sem)) w.push({ t: 'Liegt im Auslandssemester', lvl: 'warn' });
         if (e.sem === 1 && e.b === 'HP') w.push({ t: 'Praktikum im 1. Semester – laut deinen Vorgaben erst ab dem 2. Semester', lvl: 'warn' });
       }
       for (const p of m.bautAuf) {
@@ -398,11 +460,11 @@
       if (c.ausland.an && c.ausland.sem < th[1].sem) before += auslandCP();
       if (before < 80) glob.push({ t: `Master’s Thesis im ${th[1].sem}. Semester: davor sind erst ${before} CP geplant, die Zulassung braucht mind. 80 CP.`, lvl: 'bad' });
     }
-    // APSO-Fortschrittskontrolle
-    const cum = s => { let t = 0; for (const [id, e] of entries()) if (e.sem && e.sem <= s && e.b !== 'AUF') t += M[id].ects; if (c.ausland.an && c.ausland.sem <= s) t += auslandCP(); return t; };
-    const mm2 = entries().some(([id, e]) => e.sem && e.sem <= 2 && ['MM_G', 'MM_K', 'MM_A'].includes(e.b));
-    if (c.semester >= 2 && !mm2) glob.push({ t: 'APSO: Bis Ende des 2. Semesters muss ein Mastermodul (nicht aus der Flexibilisierung) bestanden sein, im Plan liegt keines davor.', lvl: 'info' });
-    for (const [s, need] of [[3, 30], [4, 60], [5, 90], [6, 120]]) if (s <= c.semester && cum(s) < need) glob.push({ t: `APSO: Bis Ende des ${s}. Semesters werden ${need} CP verlangt, geplant sind ${cum(s)}.`, lvl: 'info' });
+    // Studienfortschrittskontrolle (APSO § 10, FPSO § 38): nur Grenzen innerhalb des Plans
+    const fp = fortschritt();
+    if (fp.mm && !fp.mm.ok) glob.push({ t: 'Studienfortschritt: Bis Ende des 2. Fachsemesters muss ein Mastermodul aus Grundlagen, Kernfächern oder Angrenzenden Fachgebieten bestanden sein, im Plan liegt keines davor.', lvl: 'bad' });
+    for (const r of fp.rows) if (r.s && r.t < r.need) glob.push({ t: `Studienfortschritt: Bis Ende des ${r.k}. Fachsemesters (${semInfo(r.s).label}) sind mind. ${r.need} CP nötig, geplant sind ${r.t}.`, lvl: 'bad' });
+    for (const [id, e] of entries()) if (e.st === 'geplant' && e.sem && isUrlaub(e.sem)) per[id].push({ t: 'Im Urlaubssemester kannst du an der TUM nur Wiederholungsprüfungen ablegen.', lvl: 'bad' });
     if (c.ausland.an) {
       const sumA = Object.values(c.ausland.anr).reduce((t, v) => t + (Number(v) || 0), 0);
       if (sumA !== auslandCP()) glob.push({ t: `Auslandssemester: ${auslandCP()} ECTS geplant, davon ${sumA} angerechnet.`, lvl: 'info' });
@@ -480,6 +542,22 @@
 
   const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const searchIdx = new Map(D.module.map(m => [m.id, norm([m.titel, m.titelEn, m.kennung, m.lehrstuhl, m.verantwortlich, m.inhalt].join(' '))]));
+  // Wie gut passt ein Treffer zur Suche? Titel und Kennung vor Lehrstuhl, Personen und Inhaltstext
+  const titelIdx = new Map(D.module.map(m => [m.id, [m.titel, m.titelEn].filter(Boolean).map(norm)]));
+  function trefferRang(m, terms) {
+    const q = terms.join(' '), k = norm(m.kennung), titel = titelIdx.get(m.id);
+    if (k === q || titel.includes(q)) return 1000;
+    let r = 0;
+    for (const t of titel) {
+      if (t.startsWith(q)) r = Math.max(r, 600);
+      else if (t.includes(q)) r = Math.max(r, 400);
+      const w = t.split(/[^a-z0-9äöüß]+/);
+      const imTitel = terms.filter(x => t.includes(x)).length, wortanfang = terms.filter(x => w.some(y => y.startsWith(x))).length;
+      r = Math.max(r, imTitel * 40 + wortanfang * 10 + (imTitel === terms.length ? 100 : 0));
+    }
+    if (k.startsWith(q)) r = Math.max(r, 800);
+    return r;
+  }
   function filtered() {
     const f = S.filter, reco = recoSet();
     const terms = norm(f.q).split(/\s+/).filter(Boolean);
@@ -513,6 +591,8 @@
       schnittBestanden: (a, b) => noteVon(a, 'schnittBestanden') - noteVon(b, 'schnittBestanden') || byT(a, b),
       schnitt: (a, b) => noteVon(a, 'schnitt') - noteVon(b, 'schnitt') || byT(a, b),
     }[S.sort] || byT;
+    // bei einer Suche zuerst die besten Titel-Treffer, danach die gewählte Sortierung
+    if (terms.length) { const rang = new Map(list.map(m => [m.id, trefferRang(m, terms)])); return list.sort((a, b) => rang.get(b.id) - rang.get(a.id) || cmp(a, b)); }
     return list.sort(cmp);
   }
 
@@ -740,7 +820,7 @@
       const pct = cp ? Math.min(100, l / cp * 100) : 0;
       h += `<div class="sem ${past ? 'past' : ''} ${isAbroad(s) ? 'abroad' : ''}">
         <h3><span>${s}. Semester</span><span class="cp">${l}${cp != null ? ' / ' + cp : ''} CP</span></h3>
-        <div class="semsub">${info.label}${past ? ' · abgeschlossen' : ''}${isAbroad(s) ? ' · Auslandssemester' : ''}${s === Number(c.thesisSem) ? ' · Thesis' : ''}</div>
+        <div class="semsub">${info.label}${past ? ' · abgeschlossen' : ''}${isUrlaub(s) ? (fachSem(s) === null ? ' · Urlaubssemester (Ausland), kein Fachsemester' : ' · Urlaubssemester (Ausland), zählt durch Höherstufung') : isAbroad(s) ? ' · Auslandssemester' : ''}${fachSem(s) !== null && fachSem(s) !== s ? ` · ${fachSem(s)}. Fachsemester` : ''}${s === Number(c.thesisSem) ? ' · Thesis' : ''}</div>
         ${cp ? `<div class="bar ${l > cp + 3 ? 'bad' : Math.abs(l - cp) <= 3 ? 'ok' : ''}"><i style="width:${pct}%"></i></div>` : ''}
         ${isAbroad(s) ? auslandHtml() : ''}
         ${ord(bySem[s]).map(([id, e]) => itemHtml(id, e, an.per)).join('') || (isAbroad(s) ? '' : '<p class="hint">Noch leer.</p>')}
@@ -791,7 +871,7 @@
     const mm = MM.reduce((t, b) => t + (s[b] || 0), 0), ue = (s.UE || 0) + (s.UE_E || 0);
     const total = Object.entries(s).filter(([b]) => b !== 'AUF').reduce((t, [, v]) => t + v, 0);
     const c = C();
-    $('plan-sub').textContent = `${c.semester} Semester ab ${semInfo(1).label}${c.ausland.an ? ` · Ausland im ${c.ausland.sem}. Semester` : ''} · ${entries().length} Module`;
+    $('plan-sub').textContent = `${c.semester} Semester ab ${semInfo(1).label}${c.ausland.an ? ` · ${c.ausland.urlaub ? 'Urlaubssemester' : 'Ausland'} im ${c.ausland.sem}. Semester` : ''} · ${entries().length} Module`;
     $('total').textContent = `${total} / 120 CP`;
     $('total-sub').textContent = c.ausland.an ? `inkl. ${auslandCP()} CP Ausland` : '';
     const order = { bad: 0, warn: 1, info: 2 };
@@ -802,6 +882,7 @@
       g.map(w => `<div class="${w.lvl === 'info' ? 'infobox' : 'warnbox ' + (w.lvl === 'bad' ? 'bad' : '')}">${esc(w.t)}</div>`).join('') +
       (total >= 120 && !g.some(w => w.lvl !== 'info') ? '<div class="okbox">Alle Regeln erfüllt, 120 CP sind verplant.</div>' : '');
     renderSems(an);
+    renderFortschritt();
     let h = req('Mastermodule', mm, { soll: 60 });
     h += req(B.MM_G.name, s.MM_G || 0, { min: 20 }, true, ['MM_G']);
     h += req(B.MM_K.name, s.MM_K || 0, { max: 40 }, true, ['MM_K']);
@@ -849,18 +930,6 @@
     return p;
   }
   const inhaltMit = p => { const alt = S; S = { ...S, ...p }; try { return planInhalt(); } finally { S = alt; } };
-  $('export').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(planDaten(), null, 2)], { type: 'application/json' }));
-    a.download = 'mw-masterplan.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-  $('import').addEventListener('change', async e => {
-    const file = e.target.files[0]; if (!file) return;
-    try { Object.assign(S, planAusJson(JSON.parse(await file.text()))); save(); renderAll(); }
-    catch (err) { flashMsg('Datei konnte nicht gelesen werden.'); }
-    e.target.value = '';
-  });
-  $('clear').addEventListener('click', () => { for (const [id, e] of entries()) if (e.st === 'geplant') delete S.plan[id]; save(); renderAll(); });
 
   // ---------- Plan-Datei (File System Access API, Chrome/Edge) ----------
   // Die verbundene Datei ist der maßgebliche Stand: Jede Plan-Änderung wird nach kurzer Pause hineingeschrieben,
@@ -1132,8 +1201,6 @@
   });
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist().catch(() => {}); } catch (e) {}
   if (FS_OK) {
-    for (const b of document.querySelectorAll('.datei-nur')) b.hidden = false;
-    $('daten-hint').textContent = 'Am sichersten: eine Plan-Datei, z. B. in OneDrive. Jede Änderung wird automatisch hineingespeichert; in jedem Browser und auf jedem PC lädst du sie mit einem Klick. Ohne Plan-Datei liegt der Plan nur in diesem Browser. Der Export ist eine zusätzliche Sicherungskopie.';
     document.addEventListener('visibilitychange', () => { if (!document.hidden) dateiPruefen(); });
     window.addEventListener('focus', dateiPruefen);
     window.addEventListener('beforeunload', e => { if (D_.h && ['ok', 'speichert'].includes(D_.status) && planInhalt() !== D_.inhalt) e.preventDefault(); /* Speichern läuft noch */ });
@@ -1145,10 +1212,6 @@
       D_.status = 'warten'; dateiRender();
     }).catch(() => dateiRender());
   } else {
-    const [bs, bo] = document.querySelectorAll('.datei-nur');
-    bs.dataset.datei = 'speichern'; bs.textContent = 'Plan-Datei speichern (Strg+S)'; bs.hidden = false; bo.hidden = false;
-    if (MOBIL) { bs.textContent = 'Plan-Datei speichern (Teilen)'; $('daten-hint').textContent = 'Am Handy: „Plan-Datei speichern“ öffnet das Teilen-Menü. Wähle dort „In Drive speichern“ bzw. „In Dateien sichern“ → Google Drive. „Plan-Datei öffnen…“ lädt sie wieder, z. B. aus Google Drive. Am Laptop holst du die Handy-Änderungen mit „Plan-Datei öffnen…“ und der neuesten Datei.'; }
-    else $('daten-hint').textContent = 'Dieser Browser kann nicht automatisch in eine Datei speichern. „Plan-Datei speichern“ (oder Strg+S) lädt deinen Plan als Datei herunter, „Plan-Datei öffnen…“ lädt ihn wieder, z. B. in einem anderen Browser oder auf einem anderen PC. Wer mit einer Plan-Datei arbeitet, wird beim Schließen an ungespeicherte Änderungen erinnert. Automatisch speichern können Chrome und Edge.';
     // Schließen mit ungespeicherten Änderungen: Browser fragt nach (ein Download beim Schließen wird von Browsern blockiert)
     window.addEventListener('beforeunload', e => { if (S.dateiName && fbUngespeichert()) { e.preventDefault(); e.returnValue = ''; } });
     dateiRender();
@@ -1182,7 +1245,7 @@
     if (i === 1) {
       const fx = entries().filter(([, e]) => e.st !== 'geplant');
       const terms = norm(pickQ).split(/\s+/).filter(Boolean);
-      const hits = terms.length ? D.module.filter(m => terms.every(t => searchIdx.get(m.id).includes(t))).slice(0, 12) : [];
+      const hits = terms.length ? D.module.filter(m => terms.every(t => searchIdx.get(m.id).includes(t))).sort((a, b) => trefferRang(b, terms) - trefferRang(a, terms) || a.titel.localeCompare(b.titel, 'de')).slice(0, 12) : [];
       return `
       <div class="q"><label>Hast du schon Module bestanden oder belegst sie gerade?</label>
         <p class="hint">Diese werden fest eingeplant, zählen zu deinen CP und bleiben beim Neu-Erzeugen erhalten. Du kannst sie auch im Katalog mit „✓ bestanden“ markieren.</p>
@@ -1206,6 +1269,9 @@
         <div class="q"><label>In welchem Semester?</label>${semSel('ausland.sem', c.ausland.sem, c.aktSem)}</div>
         <div class="q"><label>Wie viele ECTS willst du dort machen?</label>${num('ausland.ects', c.ausland.ects, 0, 45)} ECTS</div>
       </div>
+      <div class="q"><label><input type="checkbox" data-cfg="ausland.urlaub" ${c.ausland.urlaub ? 'checked' : ''}> Als Urlaubssemester (Beurlaubung)</label>
+        <p class="hint">Ein Urlaubssemester zählt nicht als Fachsemester, die Fristen der Studienfortschrittskontrolle verschieben sich also um ein Semester. Erstprüfungen an der TUM sind in dieser Zeit nicht möglich, nur Wiederholungen. Die Auslands-Credits lässt du im folgenden Semester anerkennen (der Antrag geht nur einmal). Werden dabei mind. 30 Credits anerkannt, wirst du höhergestuft: Das Semester zählt dann doch als Fachsemester, je weitere 22 Credits ein weiteres.</p>
+        ${c.ausland.urlaub && hoeherstufung() ? `<div class="warnbox">Mit ${auslandAnr()} angerechneten Credits würdest du um ${hoeherstufung()} Semester höhergestuft. Für die Fachsemester bringt die Beurlaubung dann nichts, unter 30 Credits bleibt es ein Urlaubssemester.</div>` : ''}</div>
       <div class="q"><span class="ql">Worauf sollen die Auslands-ECTS angerechnet werden?</span>
         <p class="hint">Typisch ist die Flexibilisierung (bis 15 CP, auch für Mastermodule ohne Gegenstück an der TUM) und International Experience (6 CP, jedes Modul kann durch ein Auslandsmodul ersetzt werden). Für Kernfächer oder Grundlagen braucht es ein inhaltlich gleichwertiges Modul, das klärst du vorab mit dem Learning Agreement.</p>
         <p class="hint">Flexibilisierung, International Experience und Überfachliche Ergänzung stellt die App automatisch auf die CP, die dort noch fehlen. In „Mein Plan“ kannst du sie am Auslandssemester per Schieberegler ändern. Eine Zahl, die du hier einträgst, gilt als von Hand gesetzt.</p>
@@ -1260,7 +1326,7 @@
         <li>${c.semester} Semester ab ${semInfo(1).label}, aktuell im ${c.aktSem}. Semester</li>
         <li>Fokus: ${[...S.fokus.map(f => F[f].name), ...S.fokus2.map(f => '◐ ' + F[f].name)].join(', ') || 'keiner gewählt'}${S.profil != null ? ` · Profil „${esc(D.profile[S.profil].name)}“` : ''}</li>
         <li>Mastermodule: Grundlagen ${c.ziel.MM_G} · Kernfächer ${c.ziel.MM_K} · Angrenzend ${c.ziel.MM_A} · Flexi ${c.ziel.MM_F} (Summe ${zielSum()})</li>
-        <li>${c.ausland.an ? `Ausland im ${c.ausland.sem}. Semester mit ${c.ausland.ects} ECTS` : 'Kein Auslandssemester'} · Forschungspraxis im ${c.fpSem}. · Thesis im ${c.thesisSem}. Semester</li>
+        <li>${c.ausland.an ? `${c.ausland.urlaub ? 'Urlaubssemester im Ausland' : 'Ausland'} im ${c.ausland.sem}. Semester mit ${c.ausland.ects} ECTS` : 'Kein Auslandssemester'} · Forschungspraxis im ${c.fpSem}. · Thesis im ${c.thesisSem}. Semester</li>
         <li>${entries().filter(([, e]) => e.st !== 'geplant').length} bestandene/belegte und ${entries().filter(([, e]) => e.lock).length} gesperrte Module bleiben erhalten</li>
       </ul></div>`;
     return '';
@@ -1557,7 +1623,7 @@
     const sel = semMods();
     const sc = m => m.fokus.filter(x => S.fokus.includes(x)).length * 2 + m.fokus.filter(x => S.fokus2.includes(x)).length;
     const hits = D.module.filter(m => (S.semAlle || offered(m.id)) && terms.every(t => searchIdx.get(m.id).includes(t)))
-      .sort((a, b) => offered(b.id) - offered(a.id) || sc(b) - sc(a) || a.titel.localeCompare(b.titel, 'de')).slice(0, 20);
+      .sort((a, b) => offered(b.id) - offered(a.id) || trefferRang(b, terms) - trefferRang(a, terms) || sc(b) - sc(a) || a.titel.localeCompare(b.titel, 'de')).slice(0, 20);
     $('sem-hits').innerHTML = hits.length ? `<div class="pick">${hits.map(m => {
       const ex = mainExam(m.id), s = sel.get(m.id);
       return `<div><span><span class="link-btn" data-jump="${m.id}">${esc(m.titel)}</span> <span class="hint">${esc(m.kennung)} · ${m.ects} CP${offered(m.id) ? ' · ' + esc(kursTypen(m.id)) : ' · keine Termine'}</span>
