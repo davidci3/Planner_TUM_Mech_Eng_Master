@@ -38,6 +38,7 @@
     if (raw) {
       const s = JSON.parse(raw);
       S = { ...S, ...s, filter: { ...S.filter, ...(s.filter || {}) }, cfg: { ...defCfg(), ...(s.cfg || {}) } };
+      if (S.sort === 'quote') S.sort = 'schnittBestanden'; // Sortierung nach Durchfallquote gibt es nicht mehr
       S.cfg.ausland = { ...defCfg().ausland, ...(S.cfg.ausland || {}) };
       S.cfg.ausland.anr = { ...defCfg().ausland.anr, ...(S.cfg.ausland.anr || {}) };
       S.cfg.ziel = { ...defCfg().ziel, ...(S.cfg.ziel || {}) };
@@ -135,6 +136,7 @@
       semester: [...new Set(sems.map(s => s.sem))].sort().reverse() };
   }
   const statCache = new Map();
+  const noteVon = (m, k) => (stat(m) && stat(m)[k]) || 9; // ohne Statistik ans Ende
   const stat = m => {
     if (!statCache.has(m.id)) statCache.set(m.id, ES[m.kennung] ? statSumme(ES[m.kennung].flatMap(x => x.semester)) : null);
     return statCache.get(m.id);
@@ -505,9 +507,8 @@
       titel: byT,
       ects: (a, b) => b.ects - a.ects || byT(a, b),
       lehrstuhl: (a, b) => a.lehrstuhl.localeCompare(b.lehrstuhl, 'de') || byT(a, b),
-      // Module ohne Statistik ans Ende
-      schnitt: (a, b) => (stat(a) ? stat(a).schnitt : 9) - (stat(b) ? stat(b).schnitt : 9) || byT(a, b),
-      quote: (a, b) => (stat(a) ? stat(a).quote : 999) - (stat(b) ? stat(b).quote : 999) || byT(a, b),
+      schnittBestanden: (a, b) => noteVon(a, 'schnittBestanden') - noteVon(b, 'schnittBestanden') || byT(a, b),
+      schnitt: (a, b) => noteVon(a, 'schnitt') - noteVon(b, 'schnitt') || byT(a, b),
     }[S.sort] || byT;
     return list.sort(cmp);
   }
