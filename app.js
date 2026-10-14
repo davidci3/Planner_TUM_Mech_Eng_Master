@@ -141,9 +141,12 @@
     if (!statCache.has(m.id)) statCache.set(m.id, ES[m.kennung] ? statSumme(ES[m.kennung].flatMap(x => x.semester)) : null);
     return statCache.get(m.id);
   };
+  // Beim Sortieren nach dem Schnitt der Bestandenen zeigt das Etikett diesen, sonst den Gesamtschnitt
   function statTag(m) {
     const s = stat(m);
-    return s ? `<span class="tag stat" title="Prüfungsstatistik (examstats.de), ${esc(s.semester.map(semName).join(', '))}: ${s.angetreten} angetreten, Notenschnitt ${fmtNote(s.schnitt)}, ${fmtPct(s.quote)} nicht bestanden">📊 Ø ${fmtNote(s.schnitt)} · ${fmtPct(s.quote)} durchgefallen</span>` : '';
+    if (!s) return '';
+    const best = S.sort === 'schnittBestanden' && s.schnittBestanden;
+    return `<span class="tag stat">📊 Ø ${fmtNote(best ? s.schnittBestanden : s.schnitt)} · ${fmtPct(s.quote)} durchgefallen</span>`;
   }
   function statChart(s) {
     const max = Math.max(...s.zahl);
