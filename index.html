@@ -246,6 +246,19 @@ table.list th, table.list td { text-align: left; padding: 6px 8px; border-top: 1
 table.list th { color: var(--muted); font-weight: 600; font-size: 12px; border-top: 0; }
 .tbl-wrap { overflow-x: auto; }
 .refresh-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+/* Prüfungsstatistik */
+.tag.stat { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.st { display: grid; gap: 4px; margin-top: 6px; }
+.st-kpi { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); }
+.st-kpi b { color: var(--text); }
+.st-kpi .st-hoch b { color: var(--bad); }
+.st-chart { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px; max-width: 460px; }
+.st-col { display: flex; flex-direction: column; align-items: stretch; text-align: center; }
+.st-area { height: 72px; display: flex; flex-direction: column; justify-content: flex-end; border-bottom: 1px solid var(--border); }
+.st-bar { background: var(--accent); border-radius: 3px 3px 0 0; }
+.st-col.neg .st-bar { background: var(--bad); }
+.st-n { font-size: 10px; color: var(--muted); line-height: 1.3; }
+.st-l { font-size: 10px; color: var(--muted); margin-top: 2px; }
 .tag.neu { background: var(--star); color: #1b2430; font-weight: 600; }
 .ev.neu { box-shadow: inset 0 0 0 2px var(--star); }
 .mgrid .x.neu { outline: 2px solid var(--star); outline-offset: -1px; }
@@ -325,6 +338,7 @@ footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
           <label><input type="checkbox" id="f-ohnevor"> nur ohne Voraussetzungen im Katalog</label>
           <label><input type="checkbox" id="f-grundlage"> nur Grundlage für andere Module</label>
           <label id="f-imsem-wrap"><input type="checkbox" id="f-imsem"> <span id="f-imsem-label">nur im aktuellen Semester angeboten</span></label>
+          <label id="f-nurstat-wrap"><input type="checkbox" id="f-nurstat"> nur mit Prüfungsstatistik</label>
         </div>
         <p><button class="link-btn" id="reset">Filter zurücksetzen</button></p>
       </aside>
@@ -342,6 +356,8 @@ footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
               <option value="titel">Titel A–Z</option>
               <option value="ects">ECTS absteigend</option>
               <option value="lehrstuhl">Lehrstuhl</option>
+              <option value="schnitt">Notenschnitt (beste zuerst)</option>
+              <option value="quote">Durchfallquote (niedrigste zuerst)</option>
             </select>
           </label>
         </div>
@@ -427,6 +443,7 @@ footer { color: var(--muted); font-size: 12px; margin-top: 30px; }
 </main>
 <script src="data/modules.js"></script>
 <script src="data/semester.js" onerror="window.SEMESTER = null"></script>
+<script src="data/examstats.js" onerror="window.EXAMSTATS = null"></script>
 <script src="app.js"></script>
 </body>
 </html>

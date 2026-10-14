@@ -27,7 +27,7 @@
   });
   const defaults = () => ({
     fokus: [], fokus2: [], profil: null, plan: {},
-    filter: { q: '', bereiche: [...MM], fokusMode: 'alle', sprache: 'alle', turnus: 'alle', ects: 'alle', nurPlan: false, nurReco: false, ohneVor: false, grundlage: false, imSem: false },
+    filter: { q: '', bereiche: [...MM], fokusMode: 'alle', sprache: 'alle', turnus: 'alle', ects: 'alle', nurPlan: false, nurReco: false, ohneVor: false, grundlage: false, imSem: false, nurStat: false },
     sort: 'relevanz', tab: 'katalog', cfg: defCfg(), wizStep: 0, wizDone: false,
     // aktuelles Semester: Auswahl { modulId: {} }, Gruppenwahl { kursId: index }, nicht besuchte Kurse, eigene Präsenz-Einstufung
     semAuswahl: {}, semAusgeblendet: {}, semSnap: {}, kursWahl: {}, kursAus: {}, praesenz: {}, semView: 'auswahl', semWoche: null, nurPflicht: false, semAlle: false,
@@ -113,6 +113,51 @@
   const offered = id => !!(SM[id] && SM[id].kurse.length);
   const exams = id => (SM[id] && SM[id].pruefungen) || [];
   const mainExam = id => { const p = exams(id).filter(x => x.datum); return p.find(x => x.eigenes) || p[0] || null; };
+
+  // ---------- Prüfungsstatistik (examstats.de, je Kennung; teils mehrere Varianten wie D/E) ----------
+  const ESD = window.EXAMSTATS || null;
+  const ES = ESD ? ESD.module : {};
+  const NOTEN = ['1,0', '1,3', '1,7', '2,0', '2,3', '2,7', '3,0', '3,3', '3,7', '4,0', '4,3', '4,7', '5,0'];
+  const NEG = 10; // ab 4,3 nicht bestanden
+  const fmtNote = x => x.toFixed(2).replace('.', ',');
+  const fmtPct = x => (x < 10 && x > 0 ? x.toFixed(1) : Math.round(x)).toString().replace('.', ',') + ' %';
+  const semName = k => (y => k.endsWith('W') ? `WiSe ${y}/${y + 1}` : `SoSe ${y}`)(Number(k.slice(0, 2)));
+  // Kennzahlen aus den Notenzählungen, über mehrere Semester zusammengefasst
+  function statSumme(sems) {
+    const n = {};
+    for (const s of sems) for (const [k, c] of s.noten) n[k] = (n[k] || 0) + c;
+    const zahl = NOTEN.map(k => n[k] || 0), angetreten = zahl.reduce((a, c) => a + c, 0);
+    if (!angetreten) return null;
+    const bestanden = zahl.slice(0, NEG).reduce((a, c) => a + c, 0);
+    const summe = (from, to) => zahl.slice(from, to).reduce((a, c, i) => a + c * parseFloat(NOTEN[from + i].replace(',', '.')), 0);
+    return { zahl, angetreten, nichtErschienen: n.X || 0, schnitt: summe(0, NOTEN.length) / angetreten,
+      schnittBestanden: bestanden ? summe(0, NEG) / bestanden : null, quote: (angetreten - bestanden) / angetreten * 100,
+      semester: [...new Set(sems.map(s => s.sem))].sort().reverse() };
+  }
+  const statCache = new Map();
+  const stat = m => {
+    if (!statCache.has(m.id)) statCache.set(m.id, ES[m.kennung] ? statSumme(ES[m.kennung].flatMap(x => x.semester)) : null);
+    return statCache.get(m.id);
+  };
+  function statTag(m) {
+    const s = stat(m);
+    return s ? `<span class="tag stat" title="Prüfungsstatistik (examstats.de), ${esc(s.semester.map(semName).join(', '))}: ${s.angetreten} angetreten, Notenschnitt ${fmtNote(s.schnitt)}, ${fmtPct(s.quote)} nicht bestanden">📊 Ø ${fmtNote(s.schnitt)} · ${fmtPct(s.quote)} durchgefallen</span>` : '';
+  }
+  function statChart(s) {
+    const max = Math.max(...s.zahl);
+    return `<div class="st-chart" role="img" aria-label="Notenverteilung">${NOTEN.map((k, i) => `<div class="st-col${i >= NEG ? ' neg' : ''}" title="${k}: ${s.zahl[i]} (${fmtPct(s.zahl[i] / s.angetreten * 100)})">
+      <div class="st-area"><span class="st-n">${s.zahl[i] || ''}</span><span class="st-bar" style="height:${max ? s.zahl[i] / max * 100 : 0}%"></span></div><span class="st-l">${k}</span></div>`).join('')}</div>`;
+  }
+  function statBlock(m) {
+    const v = ES[m.kennung];
+    if (!v) return '';
+    const teile = v.flatMap(x => x.semester.map(sem => ({ x, sem, s: statSumme([sem]) }))).filter(t => t.s);
+    return `<div><h4>Prüfungsstatistik</h4>${teile.map(({ x, sem, s }) => `<div class="st">
+        <div><b>${semName(sem.sem)}</b>${v.length > 1 ? ` · ${esc(x.titel)} <span class="hint">(${esc(x.id)})</span>` : ''}</div>
+        <div class="st-kpi"><span><b>Ø ${fmtNote(s.schnitt)}</b> gesamt</span>${s.schnittBestanden ? `<span><b>Ø ${fmtNote(s.schnittBestanden)}</b> bestanden</span>` : ''}<span class="${s.quote >= 30 ? 'st-hoch' : ''}"><b>${fmtPct(s.quote)}</b> durchgefallen</span><span><b>${s.angetreten}</b> angetreten${sem.angemeldet ? ` von ${sem.angemeldet}` : ''}</span>${s.nichtErschienen ? `<span>${s.nichtErschienen} nicht erschienen</span>` : ''}</div>
+        ${statChart(s)}</div>`).join('')}
+      <p class="hint">Von Studierenden eingesendete TUMonline-Statistiken auf <a href="${esc(ESD.quelle)}/module/${encodeURIComponent(v[0].id)}/" target="_blank" rel="noopener">examstats.de ↗</a> · Stand ${fmtIso(ESD.stand)}</p></div>`;
+  }
   const curPlanSem = () => SEMD ? semList().find(s => semInfo(s).label === termLabel) ?? null : null;
   const PZ_LABEL = { ja: 'Präsenzpflicht', erster: 'Pflicht: 1. Termin', unklar: 'Präsenz unklar', nein: 'keine Pflicht' };
   const PZ_ORDER = ['ja', 'erster', 'unklar', 'nein'];
@@ -407,6 +452,7 @@
     $('f-nurplan').checked = S.filter.nurPlan; $('f-nurreco').checked = S.filter.nurReco;
     $('f-ohnevor').checked = S.filter.ohneVor; $('f-grundlage').checked = S.filter.grundlage;
     $('f-imsem').checked = S.filter.imSem; $('f-imsem-wrap').hidden = !SEMD;
+    $('f-nurstat').checked = S.filter.nurStat; $('f-nurstat-wrap').hidden = !ESD;
     if (SEMD) $('f-imsem-label').textContent = `nur im ${termLabel} angeboten`;
     $('sort').value = S.sort;
   }
@@ -420,7 +466,7 @@
   }
   let qTimer;
   $('q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { S.filter.q = e.target.value; shown = PAGE; save(); renderList(); }, 150); });
-  for (const [el, key] of [['f-nurplan', 'nurPlan'], ['f-nurreco', 'nurReco'], ['f-ohnevor', 'ohneVor'], ['f-grundlage', 'grundlage'], ['f-imsem', 'imSem']]) {
+  for (const [el, key] of [['f-nurplan', 'nurPlan'], ['f-nurreco', 'nurReco'], ['f-ohnevor', 'ohneVor'], ['f-grundlage', 'grundlage'], ['f-imsem', 'imSem'], ['f-nurstat', 'nurStat']]) {
     $(el).addEventListener('change', e => { S.filter[key] = e.target.checked; shown = PAGE; save(); renderList(); });
   }
   $('sort').addEventListener('change', e => { S.sort = e.target.value; save(); renderList(); });
@@ -445,6 +491,7 @@
       if (f.ohneVor && m.bautAuf.length) return false;
       if (f.grundlage && !m.grundlageFuer.length) return false;
       if (f.imSem && SEMD && !offered(m.id)) return false;
+      if (f.nurStat && !stat(m)) return false;
       if (f.fokusMode === 'fokus' && (S.fokus.length || S.fokus2.length) && !m.fokus.some(x => S.fokus.includes(x) || S.fokus2.includes(x))) return false;
       if (terms.length) { const s = searchIdx.get(m.id); if (!terms.every(t => s.includes(t))) return false; }
       return true;
@@ -458,6 +505,9 @@
       titel: byT,
       ects: (a, b) => b.ects - a.ects || byT(a, b),
       lehrstuhl: (a, b) => a.lehrstuhl.localeCompare(b.lehrstuhl, 'de') || byT(a, b),
+      // Module ohne Statistik ans Ende
+      schnitt: (a, b) => (stat(a) ? stat(a).schnitt : 9) - (stat(b) ? stat(b).schnitt : 9) || byT(a, b),
+      quote: (a, b) => (stat(a) ? stat(a).quote : 999) - (stat(b) ? stat(b).quote : 999) || byT(a, b),
     }[S.sort] || byT;
     return list.sort(cmp);
   }
@@ -509,6 +559,7 @@
         ${m.inhalt ? `<div><h4>Inhalt</h4><p>${esc(m.inhalt)}</p></div>` : ''}
         ${m.lernziele ? `<div><h4>Lernergebnisse</h4><p>${esc(m.lernziele)}</p></div>` : ''}
         ${m.pruefung ? `<div><h4>Prüfung</h4><p>${esc(m.pruefung)}</p></div>` : ''}
+        ${statBlock(m)}
         <div><h4>Lehrstuhl · Verantwortlich</h4><p>${esc(m.lehrstuhl || '–')}${m.verantwortlich ? ' · ' + esc(m.verantwortlich) : ''}</p></div>
         <div><h4>Im Studienplan unter</h4><p>${m.pfade.map(esc).join('\n')}</p></div>
         <div><a href="${tumUrl(m.id)}" target="_blank" rel="noopener">Modulbeschreibung in TUMonline öffnen ↗</a></div>
@@ -519,7 +570,7 @@
           <div class="card-title">${reco.has(m.id) ? '<span title="Empfehlung im Beispielprofil" style="color:var(--star)">★ </span>' : ''}${esc(m.titel)}<span class="k">${esc(m.kennung)}</span>
             ${m.titelEn ? `<span class="en">${esc(m.titelEn)}</span>` : ''}</div>
           <div class="meta">
-            <span class="tag ects">${m.ects} ECTS</span>${sem}${lang}${semTags}${pre}${wTags}
+            <span class="tag ects">${m.ects} ECTS</span>${sem}${lang}${semTags}${statTag(m)}${pre}${wTags}
             ${e && e.st !== 'geplant' ? `<span class="tag okt">${ST[e.st]}</span>` : ''}
             ${m.bereiche.map(b => `<span class="tag b">${esc(B[b].name)}</span>`).join('')}
             ${m.fokus.map(f => `<span class="tag f ${S.fokus.includes(f) || S.fokus2.includes(f) ? 'sel' : ''}">${esc(F[f].name)}</span>`).join('')}

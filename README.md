@@ -8,7 +8,7 @@
 Den Link kannst du einfach weitergeben. Jeder plant für sich:
 - Plan, Semesterauswahl, Fokusbereiche und Einstellungen liegen nur im Browser der jeweiligen Person (`localStorage`). Es gibt keinen Server und keine Anmeldung. Niemand sieht oder verändert den Plan eines anderen.
 - Ohne Plan-Datei startet ein anderes Gerät oder ein anderer Browser mit einem leeren Plan, und wer die Browserdaten löscht, löscht auch den Plan. Deshalb: **Plan-Datei verwenden** (siehe unten).
-- Die TUMonline-Daten (Termine und Prüfungen täglich, Studienplan montags) aktualisiert eine GitHub Action automatisch für alle (`.github/workflows/daten.yml`). Manuell startest du sie unter *Actions → Daten aktualisieren → Run workflow*.
+- Die TUMonline-Daten (Termine und Prüfungen täglich, Studienplan und Prüfungsstatistiken montags) aktualisiert eine GitHub Action automatisch für alle (`.github/workflows/daten.yml`). Manuell startest du sie unter *Actions → Daten aktualisieren → Run workflow*.
 
 ### Plan sichern: Plan-Datei (Chrome und Edge)
 Wie ein Word-Dokument, nur ohne Speichern-Drücken: Die App wird mit einer Datei verbunden und schreibt jede Änderung automatisch hinein.
@@ -54,6 +54,7 @@ Diese Browser erlauben Webseiten nicht, eine Datei auf dem PC zu überschreiben.
   - Danach lädt die Seite neu und zeigt neue, geänderte (z. B. ECTS oder Turnus) und entfernte Module.
   - Für neue Module werden Termine und Prüfungen gleich mitgeholt.
   - Kommen deutlich weniger Module zurück als vorher, bleibt der alte Stand, damit ein unvollständiger Abruf nichts kaputt macht.
+- **Prüfungsstatistik:** Für gut 100 Module gibt es Notenverteilungen von [examstats.de](https://examstats.de). Das Etikett „📊 Ø 2,76 · 15 % durchgefallen“ zeigt Notenschnitt und Durchfallquote (über alle vorhandenen Semester). Die Details zeigen je Semester die Verteilung 1,0–5,0, den Schnitt der Bestandenen sowie Angemeldete, Angetretene und Nicht-Erschienene. Filter „nur mit Prüfungsstatistik“, Sortierung nach Notenschnitt oder Durchfallquote. Die Zahlen sind von Studierenden eingesendet; bei wenigen Teilnehmenden sind sie wenig aussagekräftig.
 - Module per „+ Plan“ einplanen oder mit „✓ bestanden“ als erledigt markieren. Der Status ist geplant, belegt oder bestanden.
 
 ### Planer-Assistent
@@ -117,6 +118,7 @@ Die Einstufung kannst du je Kurs selbst ändern.
 
 ## Daten
 - Module, ECTS und Bereiche stammen aus dem öffentlichen TUMonline-Studienplan (`pStpStpNr=5343`, Studienjahr 2026/27).
+- Prüfungsstatistiken (`data/examstats.js`) stammen von examstats.de (`node tools/examstats.mjs data`). Zugeordnet wird über die Modulkennung, Varianten wie `ED180034D`/`ED180034E` landen beim Katalogmodul `ED180034`. Die GitHub Action lädt sie montags neu.
 - Kurse, Termine und Prüfungstermine (`data/semester.js`) stammen aus den öffentlichen TUMonline-Schnittstellen. Dazu gehören die Moduldetails (`courseGroupings`), die Kursgruppen (`firstGroups`/`remainingGroups`) und die öffentliche Prüfungsterminliste (`slc.xm.exd/exExamOffer`). Aktualisiert werden sie automatisch über den Hilfsdienst (siehe unten).
 - Details (Turnus, Sprache, Inhalt, Voraussetzungstext) stammen aus den öffentlichen TUMonline-Modulbeschreibungen.
 - Die Regeln und die 8 Forschungsbereiche stammen aus der Studiengangsdokumentation M.Sc. MW (Stand 23.10.2025).
