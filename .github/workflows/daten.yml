@@ -36,13 +36,10 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%u)" != "1" ]; then echo "Nur montags."; exit 0; fi
           node tools/katalog.mjs data
 
-      # Prüfungsstatistiken von examstats.de: montags und bei manuellem Start; ein Ausfall stoppt den Rest nicht
+      # Prüfungsstatistiken von examstats.de: täglich und bei manuellem Start; ein Ausfall stoppt den Rest nicht
       - name: Prüfungsstatistiken (examstats.de)
-        if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         continue-on-error: true
-        run: |
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%u)" != "1" ]; then echo "Nur montags."; exit 0; fi
-          node tools/examstats.mjs data
+        run: node tools/examstats.mjs data
 
       - name: Termine und Prüfungen des aktuellen Semesters
         run: node tools/semester.mjs auto data
