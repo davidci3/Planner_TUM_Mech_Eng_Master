@@ -125,6 +125,8 @@
   const isoDate = s => new Date(s + 'T00:00:00');
   const fmtIso = (s, long) => isoDate(s).toLocaleDateString('de-DE', long ? { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' } : { day: '2-digit', month: '2-digit', year: 'numeric' });
   const roomName = i => (SEMD && i >= 0 ? SEMD.raeume[i] : '');
+  // NavigaTUM-Link aus der Raumkennung am Ende des Namens, z. B. „MW 1050, … (5510.01.050)“
+  const roomHtml = n => { const m = n.match(/\((\d{4}\.\w+\.\w+)\)\s*$/); return m ? `<a class="room" href="https://nav.tum.de/room/${encodeURIComponent(m[1])}" target="_blank" rel="noopener" title="In NavigaTUM öffnen">${esc(n)}</a>` : esc(n); };
   const offered = id => !!(SM[id] && SM[id].kurse.length);
   const exams = id => (SM[id] && SM[id].pruefungen) || [];
   const mainExam = id => { const p = exams(id).filter(x => x.datum); return p.find(x => x.eigenes) || p[0] || null; };
@@ -1697,7 +1699,7 @@
       const tip = `${M[x.id].titel}\n${x.k.typ} ${kursTitel(x.k)}${x.k.gruppen.length > 1 ? ' · ' + x.k.gruppen[x.g].n : ''}\n${hm(x.s)}–${hm(x.e)}${room ? ' · ' + room : ''}\n${x.pf ? 'Präsenzpflicht' : x.un ? 'Präsenzpflicht unklar' : 'keine Präsenzpflicht'}${x.konf === 'bad' ? '\n⚠ Überschneidung zweier Pflichttermine' : x.konf === 'warn' ? '\n⚠ möglicher Konflikt' : x.konf ? '\nÜberschneidung' : ''}`;
       const neu = !!(an.chg[x.id] && an.chg[x.id].kurse[x.k.id]);
       return `<div class="ev ${x.pf ? '' : 'optional'} ${x.konf === 'bad' || x.konf === 'warn' ? 'k-' + x.konf : ''} ${neu ? 'neu' : ''}" style="--h:${x.h};top:${top}px;height:${h}px;left:calc(${x.lane / x.lanes * 100}% + 1px);width:calc(${100 / x.lanes}% - 2px)" title="${esc(tip)}${neu ? '\n✦ neu bzw. geändert' : ''}">
-        <b>${neu ? '✦ ' : ''}${x.pf ? '<span class="pf">●</span> ' : x.un ? '? ' : ''}${esc(x.k.typ)} ${esc(M[x.id].titel)}</b>${hm(x.s)}–${hm(x.e)}${room ? `<br>${esc(room)}` : ''}</div>`;
+        <b>${neu ? '✦ ' : ''}${x.pf ? '<span class="pf">●</span> ' : x.un ? '? ' : ''}${esc(x.k.typ)} ${esc(M[x.id].titel)}</b>${hm(x.s)}–${hm(x.e)}${room ? `<br>${roomHtml(room)}` : ''}</div>`;
     };
     const confW = an.pairs.filter(c => c.lvl === 'bad' || c.lvl === 'warn').length;
     return `${bar}<div class="week-nav">
