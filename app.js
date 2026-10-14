@@ -1615,6 +1615,7 @@
     $('sem-alle').checked = !!S.semAlle;
     for (const b of $('sem-tabs').children) b.classList.toggle('on', b.dataset.v === S.semView);
     $('sem-body').innerHTML = S.semView === 'stunden' ? semWeek(an) : S.semView === 'pruef' ? semExams(an) : semList_(an);
+    updNow();
     renderSemHits();
   }
 
@@ -1710,15 +1711,28 @@
         <label class="hint"><input type="checkbox" id="sem-nurpf" ${S.nurPflicht ? 'checked' : ''}> nur Präsenzpflicht &amp; unklare</label>
         <span class="hint">${evW.length} Termine${confW ? ` · <span style="color:var(--bad)">${confW} Konflikt${confW > 1 ? 'e' : ''} im Semester</span>` : ''}</span>
       </div>
-      <div class="week-wrap"><div class="week" style="grid-template-columns:44px repeat(${days.length}, minmax(110px, 1fr));--hour:${HP}px">
+      <div class="week-wrap"><div class="week" data-h0="${H0}" data-h1="${H1}" data-hp="${HP}" style="grid-template-columns:44px repeat(${days.length}, minmax(110px, 1fr));--hour:${HP}px">
         <div class="dh" style="border-left:0"></div>
         ${days.map(i => { const dt = dateOf(d0 + i); return `<div class="dh ${d0 + i === today ? 'today' : ''}">${WD[dt.getDay()]}<small>${ddmm(dt)}</small></div>`; }).join('')}
         <div class="tcol" style="height:${(H1 - H0) * HP}px">${Array.from({ length: H1 - H0 }, (_, i) => i ? `<span style="top:${i * HP}px">${H0 + i}:00</span>` : '').join('')}</div>
-        ${days.map(i => `<div class="dcol" style="height:${(H1 - H0) * HP}px">${cols(i).map(evHtml).join('')}</div>`).join('')}
+        ${days.map(i => `<div class="dcol" data-day="${d0 + i}" style="height:${(H1 - H0) * HP}px">${cols(i).map(evHtml).join('')}</div>`).join('')}
       </div></div>
       <div class="legend"><span><i style="background:hsl(210 80% 85%);border-left:3px solid hsl(210 60% 45%)"></i>● Präsenzpflicht</span><span><i style="background:hsl(210 60% 94%);border-left:3px dotted hsl(210 60% 45%)"></i>keine Pflicht</span><span>? = Pflicht unklar</span><span><i style="outline:2px solid var(--bad)"></i>Pflichttermine überschneiden sich</span><span><i style="outline:2px dashed var(--warn)"></i>möglicher Konflikt</span><span>✦ = neu/geändert</span></div>
       ${offeneTermine(an)}`;
   }
+
+  // Strich auf Höhe der aktuellen Uhrzeit in der Spalte von heute, außerhalb der Stundenplan-Zeiten unsichtbar
+  function updNow() {
+    const wk = document.querySelector('.week[data-h0]'); if (!wk) return;
+    const dt = new Date(), t = dt.getHours() * 60 + dt.getMinutes();
+    const col = wk.querySelector(`.dcol[data-day="${dayOfDate(dt)}"]`);
+    let line = wk.querySelector('.now-line');
+    if (!col || t < wk.dataset.h0 * 60 || t > wk.dataset.h1 * 60) { if (line) line.remove(); return; }
+    if (!line) line = document.createElement('div'), line.className = 'now-line';
+    if (line.parentNode !== col) col.appendChild(line);
+    line.style.top = `${(t - wk.dataset.h0 * 60) * wk.dataset.hp / 60}px`;
+  }
+  setInterval(updNow, 60000);
 
   // Prüfungskalender
   function semExams(an) {

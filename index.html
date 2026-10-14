@@ -8,19 +8,19 @@
 :root {
   --bg: #f6f7f9; --surface: #ffffff; --surface2: #eef1f5; --text: #1b2430; --muted: #5d6a7a;
   --border: #d9dee6; --accent: #0065bd; --accent-soft: #e3effa; --ok: #1d7f45; --ok-soft: #e2f4e9;
-  --warn: #a65b00; --warn-soft: #fdf0dd; --bad: #b42318; --bad-soft: #fde7e5; --star: #c08a00;
+  --warn: #a65b00; --warn-soft: #fdf0dd; --bad: #b42318; --bad-soft: #fde7e5; --star: #c08a00; --now: #0ea5a4;
   --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #12161c; --surface: #1a2029; --surface2: #232b36; --text: #e6eaf0; --muted: #9aa6b5;
   --border: #2e3846; --accent: #5aa9f0; --accent-soft: #1d3247; --ok: #4cc27f; --ok-soft: #173225;
-  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040;
+  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040; --now: #3fd6d0;
   --shadow: none;
 } }
 :root[data-theme="dark"] {
   --bg: #12161c; --surface: #1a2029; --surface2: #232b36; --text: #e6eaf0; --muted: #9aa6b5;
   --border: #2e3846; --accent: #5aa9f0; --accent-soft: #1d3247; --ok: #4cc27f; --ok-soft: #173225;
-  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040;
+  --warn: #f0a849; --warn-soft: #3a2a14; --bad: #f27a6e; --bad-soft: #3d1d1a; --star: #f0c040; --now: #3fd6d0;
   --shadow: none;
 }
 * { box-sizing: border-box; }
@@ -237,6 +237,8 @@ aside h3:first-child { margin-top: 0; }
 .ev b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev .pf { font-weight: 700; color: #b42318; }
 .ev a.room { color: inherit; text-decoration: underline dotted; text-underline-offset: 2px; }
+.now-line { position: absolute; left: 0; right: 0; border-top: 2px solid var(--now); z-index: 3; pointer-events: none; }
+.now-line::before { content: ''; position: absolute; left: -5px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--now); }
 .ev a.room:hover { text-decoration-style: solid; }
 .ev.k-bad { outline: 2px solid var(--bad); outline-offset: -1px; }
 .ev.k-warn { outline: 2px dashed var(--warn); outline-offset: -1px; }
