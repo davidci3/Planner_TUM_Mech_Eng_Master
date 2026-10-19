@@ -1,7 +1,7 @@
 {
  "studiengang": "M.Sc. Maschinenwesen (TUM School of Engineering and Design)",
  "spo": "[20241] Maschinenwesen",
- "stand": "2026-10-13",
+ "stand": "2026-10-19",
  "studienjahr": "2026/27",
  "quellen": [
   {
@@ -6120,7 +6120,7 @@
    "inhalt": "The module covers fundamental concepts in corporate finance. This knowledge is important as a fundament for advanced courses in corporate finance as well as a career in the investment banking or in a corporate treasury department.\n\n• Options: Basic understanding, put call parity, binomial and Black-Scholes option pricing, equity as call option\n• Real options: Identification and binomial pricing\n• Valuation: Introduction to DCF methods, multiples methods and applications\n• IPO: Empirical studies of IPO costs, IPO process\n• Capital structure: WACC under OPM, CAPM and MM, trade off theory of debt, agency theory of debt, pecking order theory of debt\n• Efficient markets: Definitions, modeling, empirical approaches and results\n• M&A: Explanations of wealth effects of M&A, explanations for conglomerates, Empirical results on\nother forms of ownership decreases and change (divestitures, carve …",
    "lernziele": "After successful completion of the module, students will be able to explain the most common concepts in corporate finance such as real and financial options, company valuation, market efficiency and dividend and leverage policies. Furthermore, they are able to discuss critically these topics. Finally, they will be able to apply the above concepts and decide on corporate financial policies as well as evaluate financial and real options and companies (e.g., by using option theory or DCF methods).",
    "voraussetzungen": "The student should have a solid understanding of finance fundamentals (discounting cash flows, risk, CAPM). These topics are covered in the course “Investitions- und Finanzmanagement” or in other introductory finance classes.",
-   "pruefung": "The grading is based on an closed-book e-test with a duration of 60 minutes. This exam consists of theoretical questions regarding corporate finance (e.g. characteristics of real options, when to apply which company valuation method, theoretical considerations on the optimal capital structure) as well as performing applied computations (e.g. valuing real options, computing equity values by discounting cash flows, adjusting firm risk measures for leverage) . The theoretical questions are mainly …",
+   "pruefung": "The grading is based on a closed-book exam with a duration of 60 minutes. This exam consists of theoretical questions regarding corporate finance (e.g. characteristics of real options, when to apply which company valuation method, theoretical considerations on the optimal capital structure) as well as performing applied computations (e.g. valuing real options, computing equity values by discounting cash flows, adjusting firm risk measures for leverage).The theoretical questions are mainly based …",
    "bereiche": [
     "MM_A"
    ],
@@ -11657,63 +11657,6 @@
    "bautAuf": [],
    "grundlageFuer": [],
    "vorausWeich": true
-  },
-  {
-   "id": "3906502",
-   "kennung": "SOT82701",
-   "titel": "EuroTeQ Collider. Enhancing Connections for Sustainable Futures (BSc)",
-   "titelEn": "",
-   "ects": 6,
-   "turnus": "?",
-   "sprache": "?",
-   "spracheRaw": "",
-   "lehrstuhl": "",
-   "verantwortlich": "",
-   "praesenz": "",
-   "inhalt": "",
-   "lernziele": "",
-   "voraussetzungen": "",
-   "pruefung": "",
-   "bereiche": [
-    "UE"
-   ],
-   "pfade": [
-    "Überfachliche Ergänzung › Angebote Kontextstudium › Sustainable Development"
-   ],
-   "fokus": [],
-   "bautAuf": [],
-   "grundlageFuer": []
-  },
-  {
-   "id": "3906507",
-   "kennung": "SOT86701",
-   "titel": "EuroTeQ Collider. Enhancing Connections for Sustainable Futures (MSc)",
-   "titelEn": "",
-   "ects": 6,
-   "turnus": "SoSe",
-   "sprache": "en",
-   "spracheRaw": "Englisch",
-   "lehrstuhl": "Department of Governance",
-   "verantwortlich": "Angela Wester",
-   "praesenz": "60",
-   "inhalt": "\"Enhancing Connections for Sustainable Futures\" aims to promote an integrated approach based on three main areas: People, Nature, and Technology. In the \"People\" domain, the focus is on empowering and enabling communities. This involves connecting people's needs and aspirations through technology, including digital solutions, in various areas such as wellbeing, health, culture, etc. In the \"Nature\" realm, the call concentrates on the conscious use of nature and the consideration of its resources. This includes examining interactions in ecosystems, safeguarding biodiversity and nature conservation, as well as utilizing renewable energies. Within the \"Technology\" sphere, the emphasis is on establishing efficient connections through technology, both digital and physical. This encompasses various fields such as information technology, logistics, transportation, manufacturing, communication, …",
-   "lernziele": "After completion, all EuroTeQ Collider participants will be able to: \n- Select and apply appropriate design, engineering and business approaches and tools to create an innovative and science-based solution to a real-life challenge. \n- Develop a profound interpretation of a complex, real-life problem and its context using a system-thinking approach, considering multiple perspectives. \n- Develop a problem-driven, creative, and integrative design, demonstrated by a concrete prototype that balances desirability, feasibility, and viability. \n- Use disciplinary knowledge and expertise in an …",
-   "voraussetzungen": "This module is aimed at all students enrolled in a Bachelor or Master program at the TUM; it is thus designed as an interdisciplinary venue which brings together a range of scientific perspectives. No specific prior knowledge is required; however, its project-based character requires high levels of intrinsic motivation and the willingness to actively participate in a project.Please register for this course via TUM Online. If you have any questions or problems to register, please send an email to euroteq@ja.tum.de",
-   "pruefung": "During this module, students must complete following tasks: producing a presentation that provides information on the project concept development and implementation, as well as a final report, charting the progress of their work/research over time. These assessments will evaluate a) the success of the project and b) the learning success of the students in oral and written form. \nStudents will be graded based on the active participation in a group project (20%), a final presentation of project …",
-   "bereiche": [
-    "MM_F",
-    "UE"
-   ],
-   "pfade": [
-    "Mastermodule › Ingenieurwissenschaftliche Flexibilisierung (bis maximal 15 Credits) › Interdisziplinäre Mastermodule › Hochschule für Politik München",
-    "Überfachliche Ergänzung › Angebote Kontextstudium › Sustainable Development"
-   ],
-   "fokus": [
-    "wirtschaft"
-   ],
-   "bautAuf": [],
-   "grundlageFuer": [],
-   "vorausWeich": false
   },
   {
    "id": "463419",
@@ -19900,35 +19843,6 @@
    "vorausWeich": false
   },
   {
-   "id": "4949905",
-   "kennung": "ED160068",
-   "titel": "Logistik",
-   "titelEn": "Logistics",
-   "ects": 4,
-   "turnus": "WiSe+SoSe",
-   "sprache": "de",
-   "spracheRaw": "Deutsch",
-   "lehrstuhl": "Lehrstuhl für Fördertechnik Materialfluss Logistik (Prof. Fottner)",
-   "verantwortlich": "Johannes Fottner",
-   "praesenz": "60",
-   "inhalt": "tbd\n\nALT: Das Praktikum Logistik besteht aus derzeit sieben Terminen, in denen unterschiedlichste Aspekte der Logistik an konkreten Beispielen unterrichtet werden:\n\n1. Termin: Kommissionierung\nEinflussgrößen und Kenngrößen der Kommissionierung, Klassifizierung von Kommissioniersystemen, Prozessanalyse, Optimierungsmöglichkeiten, direkte Umsetzung zielführender Maßnahmen in einem realen Kommissionierbereich, Leistungssteigerung;\n2. Termin: Radio Frequency IDentification (RFID)\nKennenlernen der RFID-Technologie, RFID in der Logistik, Versuche im Testumfeld am Institut (RFID Anwenderzentrum München);\n3./4. Termin: Lean Logistics \nPlanspiel \"Optimierung Kugelschreiberfertigung\", Methoden und Ansätze der schlanken Logistik, Prozesssteuerung (PUSH- / PULL-Systeme), Optimierung Bestände und Durchlaufzeit;\n5. Termin: Prozessanalyse\nWertstromdesign zur Gestaltung einer realen …",
-   "lernziele": "tbd\n\nALT: Nach der Teilnahme an der Modulveranstaltung sind die Studierenden in der Lage, RFID als Technologie und die daraus resultierenden Möglichkeiten für die Logistik zu verstehen. Daneben lernen Sie die Funktionen der Kommissionierung kennen.\nFerner üben die Studenten das Wertstromdesign und sind in der Lage, analytische Methoden zur Pufferdimensionierung anzuwenden. Im Praktikum lernen Sie operative logistische Prozesse zu analysieren und gängige Formen der Prozesssteuerung zu unterscheiden und zu bewerten.",
-   "voraussetzungen": "Erfolgreiche Teilnahme im Modul \"Materialfluss und Logistik\" (MW0067)",
-   "pruefung": "tbd\n\nALT: Die Praktikumsteilnehmer müssen an jedem der Praktikumstermine anwesend sein. Bei Krankheit ist ein einmaliges Fehlen erlaubt. In sieben schriftlichen Kurztests werden die vermittelten Inhalte der einzelnen Termine geprüft.",
-   "bereiche": [
-    "HP"
-   ],
-   "pfade": [
-    "Hochschulpraktika › Hochschul-Praktika"
-   ],
-   "fokus": [
-    "produktion"
-   ],
-   "bautAuf": [],
-   "grundlageFuer": [],
-   "vorausWeich": false
-  },
-  {
    "id": "261645",
    "kennung": "MW0762",
    "titel": "Logistik in der Automobilindustrie",
@@ -25341,6 +25255,35 @@
    "bautAuf": [
     "1607098"
    ],
+   "grundlageFuer": [],
+   "vorausWeich": false
+  },
+  {
+   "id": "4949905",
+   "kennung": "ED160068",
+   "titel": "Praktikum Logistik",
+   "titelEn": "Logistics - Practical Course",
+   "ects": 4,
+   "turnus": "WiSe+SoSe",
+   "sprache": "de",
+   "spracheRaw": "Deutsch",
+   "lehrstuhl": "Lehrstuhl für Fördertechnik Materialfluss Logistik (Prof. Fottner)",
+   "verantwortlich": "Johannes Fottner",
+   "praesenz": "60",
+   "inhalt": "tbd\n\nALT: Das Praktikum Logistik besteht aus derzeit sieben Terminen, in denen unterschiedlichste Aspekte der Logistik an konkreten Beispielen unterrichtet werden:\n\n1. Termin: Kommissionierung\nEinflussgrößen und Kenngrößen der Kommissionierung, Klassifizierung von Kommissioniersystemen, Prozessanalyse, Optimierungsmöglichkeiten, direkte Umsetzung zielführender Maßnahmen in einem realen Kommissionierbereich, Leistungssteigerung;\n2. Termin: Radio Frequency IDentification (RFID)\nKennenlernen der RFID-Technologie, RFID in der Logistik, Versuche im Testumfeld am Institut (RFID Anwenderzentrum München);\n3./4. Termin: Lean Logistics \nPlanspiel \"Optimierung Kugelschreiberfertigung\", Methoden und Ansätze der schlanken Logistik, Prozesssteuerung (PUSH- / PULL-Systeme), Optimierung Bestände und Durchlaufzeit;\n5. Termin: Prozessanalyse\nWertstromdesign zur Gestaltung einer realen …",
+   "lernziele": "tbd\n\nALT: Nach der Teilnahme an der Modulveranstaltung sind die Studierenden in der Lage, RFID als Technologie und die daraus resultierenden Möglichkeiten für die Logistik zu verstehen. Daneben lernen Sie die Funktionen der Kommissionierung kennen.\nFerner üben die Studenten das Wertstromdesign und sind in der Lage, analytische Methoden zur Pufferdimensionierung anzuwenden. Im Praktikum lernen Sie operative logistische Prozesse zu analysieren und gängige Formen der Prozesssteuerung zu unterscheiden und zu bewerten.",
+   "voraussetzungen": "Erfolgreiche Teilnahme im Modul \"Materialfluss und Logistik\" (MW0067)",
+   "pruefung": "tbd\n\nALT: Die Praktikumsteilnehmer müssen an jedem der Praktikumstermine anwesend sein. Bei Krankheit ist ein einmaliges Fehlen erlaubt. In sieben schriftlichen Kurztests werden die vermittelten Inhalte der einzelnen Termine geprüft.",
+   "bereiche": [
+    "HP"
+   ],
+   "pfade": [
+    "Hochschulpraktika › Hochschul-Praktika"
+   ],
+   "fokus": [
+    "produktion"
+   ],
+   "bautAuf": [],
    "grundlageFuer": [],
    "vorausWeich": false
   },
