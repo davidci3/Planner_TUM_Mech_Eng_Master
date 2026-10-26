@@ -31,6 +31,8 @@
     sort: 'relevanz', tab: 'katalog', cfg: defCfg(), wizStep: 0, wizDone: false,
     // aktuelles Semester: Auswahl { modulId: {} }, Gruppenwahl { kursId: index }, nicht besuchte Kurse, eigene Präsenz-Einstufung
     semAuswahl: {}, semAusgeblendet: {}, semSnap: {}, kursWahl: {}, kursAus: {}, praesenz: {}, semView: 'auswahl', semWoche: null, nurPflicht: false, semAlle: false,
+    // To-dos: { id, t: Text, n: Notiz, done, ev: { mod, titel, kurs, typ, d, s, e } bei markierten Stundenplan-Terminen }
+    todos: [],
   });
   let S = defaults();
   try {
@@ -63,6 +65,7 @@
     if (typeof v === 'string') S.plan[id] = { b: v, sem: null, st: 'geplant', lock: false };
   }
   if (!Array.isArray(S.fokus2)) S.fokus2 = [];
+  if (!Array.isArray(S.todos)) S.todos = [];
   for (const k of ['semAuswahl', 'semAusgeblendet', 'semSnap', 'kursWahl', 'kursAus', 'praesenz']) if (!S[k] || typeof S[k] !== 'object') S[k] = {};
   let nachAenderung = null; // Plan-Datei: Zeitstempel setzen und Autospeichern anstoßen (wird unten belegt)
   const save = () => { if (nachAenderung) nachAenderung(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
@@ -912,7 +915,7 @@
   // Plan als JSON (Export und Plan-Datei); planInhalt() ohne Zeitstempel zum Vergleichen
   const planDaten = () => ({ format: 'mw-masterplan', version: 1, geaendert: S.geaendert || null, exportiert: new Date().toISOString(),
     fokus: S.fokus, fokus2: S.fokus2, cfg: S.cfg,
-    semester: { auswahl: Object.keys(S.semAuswahl), ausgeblendet: Object.keys(S.semAusgeblendet), kursWahl: S.kursWahl, kursAus: S.kursAus, praesenz: S.praesenz },
+    semester: { auswahl: Object.keys(S.semAuswahl), ausgeblendet: Object.keys(S.semAusgeblendet), kursWahl: S.kursWahl, kursAus: S.kursAus, praesenz: S.praesenz, todos: S.todos },
     plan: entries().map(([id, e]) => ({ id, kennung: M[id].kennung, titel: M[id].titel, ects: M[id].ects, bereich: e.b, semester: e.sem, status: e.st, gesperrt: e.lock })) });
   const planInhalt = () => { const { geaendert, exportiert, ...r } = planDaten(); return JSON.stringify(r); };
   // Liest eine Export- oder Plan-Datei und liefert die zu übernehmenden Felder von S (wirft bei ungültigem Format)
@@ -928,6 +931,7 @@
       p.semAuswahl = Object.fromEntries((j.semester.auswahl || []).filter(id => M[id]).map(id => [id, {}]));
       p.semAusgeblendet = Object.fromEntries((j.semester.ausgeblendet || []).filter(id => M[id]).map(id => [id, true]));
       for (const k of ['kursWahl', 'kursAus', 'praesenz']) p[k] = j.semester[k] && typeof j.semester[k] === 'object' ? j.semester[k] : {};
+      if (Array.isArray(j.semester.todos)) p.todos = j.semester.todos.filter(t => t && t.id);
     }
     return p;
   }
@@ -963,6 +967,8 @@
     if (rein.length) teile.push(`${liste(rein)} wieder im Plan`);
     if (raus.length) teile.push(`${liste(raus)} aus dem Plan genommen`);
     if (geaendert.length) teile.push(`${liste(geaendert)} geändert (Semester, Status oder Bereich)`);
+    const td = x => JSON.stringify((JSON.parse(x).semester || {}).todos || []);
+    if (td(von) !== td(nach)) teile.push('To-dos geändert');
     return teile.join(', ') || 'Einstellungen bzw. Semesterauswahl zurückgesetzt';
   }
   function verlaufGehen(zurueck) {
@@ -1614,7 +1620,8 @@
       (!an.mods.length ? `<div class="infobox">Noch keine Module für das ${esc(SEMD.label)}. Suche unten nach Fächern oder füge sie im Katalog mit „+ Semester“ hinzu${curPlanSem() != null ? '. Module, die in „Mein Plan“ in diesem Semester liegen, erscheinen automatisch' : ''}.</div>` : '');
     $('sem-alle').checked = !!S.semAlle;
     for (const b of $('sem-tabs').children) b.classList.toggle('on', b.dataset.v === S.semView);
-    $('sem-body').innerHTML = S.semView === 'stunden' ? semWeek(an) : S.semView === 'pruef' ? semExams(an) : semList_(an);
+    $('td-count').textContent = S.todos.filter(t => !t.done).length;
+    $('sem-body').innerHTML = S.semView === 'stunden' ? semWeek(an) : S.semView === 'pruef' ? semExams(an) : S.semView === 'todo' ? semTodos(an) : semList_(an);
     updNow();
     renderSemHits();
   }
@@ -1698,26 +1705,29 @@
     const evHtml = x => {
       const room = roomName(x.r), top = px(x.s), h = Math.max(18, px(x.e) - top);
       const tip = `${M[x.id].titel}\n${x.k.typ} ${kursTitel(x.k)}${x.k.gruppen.length > 1 ? ' · ' + x.k.gruppen[x.g].n : ''}\n${hm(x.s)}–${hm(x.e)}${room ? ' · ' + room : ''}\n${x.pf ? 'Präsenzpflicht' : x.un ? 'Präsenzpflicht unklar' : 'keine Präsenzpflicht'}${x.konf === 'bad' ? '\n⚠ Überschneidung zweier Pflichttermine' : x.konf === 'warn' ? '\n⚠ möglicher Konflikt' : x.konf ? '\nÜberschneidung' : ''}`;
-      const neu = !!(an.chg[x.id] && an.chg[x.id].kurse[x.k.id]);
-      return `<div class="ev ${x.pf ? '' : 'optional'} ${x.konf === 'bad' || x.konf === 'warn' ? 'k-' + x.konf : ''} ${neu ? 'neu' : ''}" style="--h:${x.h};top:${top}px;height:${h}px;left:calc(${x.lane / x.lanes * 100}% + 1px);width:calc(${100 / x.lanes}% - 2px)" title="${esc(tip)}${neu ? '\n✦ neu bzw. geändert' : ''}">
-        <b>${neu ? '✦ ' : ''}${x.pf ? '<span class="pf">●</span> ' : x.un ? '? ' : ''}${esc(x.k.typ)} ${esc(M[x.id].titel)}</b>${hm(x.s)}–${hm(x.e)}${room ? `<br>${roomHtml(room)}` : ''}</div>`;
+      const neu = !!(an.chg[x.id] && an.chg[x.id].kurse[x.k.id]), key = evKey(x.k.id, x.d, x.s), td = todoOf(key);
+      const tdTip = td ? (td.done ? '\n✓ nachgearbeitet' : '\n📝 To-do: nacharbeiten') + (td.n ? '\nNotiz: ' + td.n : '') : '';
+      return `<div class="ev ${x.pf ? '' : 'optional'} ${x.konf === 'bad' || x.konf === 'warn' ? 'k-' + x.konf : ''} ${neu ? 'neu' : ''} ${td ? 'todo' + (td.done ? ' done' : '') : ''}" data-ev="${key}" style="--h:${x.h};top:${top}px;height:${h}px;left:calc(${x.lane / x.lanes * 100}% + 1px);width:calc(${100 / x.lanes}% - 2px)" title="${esc(tip)}${neu ? '\n✦ neu bzw. geändert' : ''}${esc(tdTip)}\n(gedrückt halten: als To-do markieren)">
+        <b>${td ? (td.done ? '✓ ' : '📝 ') : ''}${neu ? '✦ ' : ''}${x.pf ? '<span class="pf">●</span> ' : x.un ? '? ' : ''}${esc(x.k.typ)} ${esc(M[x.id].titel)}</b>${hm(x.s)}–${hm(x.e)}${room ? `<br>${roomHtml(room)}` : ''}</div>`;
     };
     const confW = an.pairs.filter(c => c.lvl === 'bad' || c.lvl === 'warn').length;
+    wochenEv = new Map(evW.map(x => [evKey(x.k.id, x.d, x.s), x]));
     return `${bar}<div class="week-nav">
         <button class="btn" data-wk="${w - 1}" ${w <= weekOf(dMin) ? 'disabled' : ''}>◀</button>
         <span class="wk">KW ${kw} · ${ddmm(dateOf(d0))}–${dateOf(d0 + 6).toLocaleDateString('de-DE')}</span>
         <button class="btn" data-wk="${w + 1}" ${w >= weekOf(dMax) ? 'disabled' : ''}>▶</button>
         <button class="btn small" data-wk="heute">${today >= dMin && today <= dMax ? 'Diese Woche' : 'Standardwoche'}</button>
         <label class="hint"><input type="checkbox" id="sem-nurpf" ${S.nurPflicht ? 'checked' : ''}> nur Präsenzpflicht &amp; unklare</label>
+        <label class="hint" title="Sonst Termin gedrückt halten (am PC Rechtsklick)"><input type="checkbox" id="sem-todomodus" ${todoModus ? 'checked' : ''}> Antippen markiert als To-do</label>
         <span class="hint">${evW.length} Termine${confW ? ` · <span style="color:var(--bad)">${confW} Konflikt${confW > 1 ? 'e' : ''} im Semester</span>` : ''}</span>
       </div>
-      <div class="week-wrap"><div class="week" data-h0="${H0}" data-h1="${H1}" data-hp="${HP}" style="grid-template-columns:44px repeat(${days.length}, minmax(110px, 1fr));--hour:${HP}px">
+      <div class="week-wrap"><div class="week ${todoModus ? 'markieren' : ''}" data-h0="${H0}" data-h1="${H1}" data-hp="${HP}" style="grid-template-columns:44px repeat(${days.length}, minmax(110px, 1fr));--hour:${HP}px">
         <div class="dh" style="border-left:0"></div>
         ${days.map(i => { const dt = dateOf(d0 + i); return `<div class="dh ${d0 + i === today ? 'today' : ''}">${WD[dt.getDay()]}<small>${ddmm(dt)}</small></div>`; }).join('')}
         <div class="tcol" style="height:${(H1 - H0) * HP}px">${Array.from({ length: H1 - H0 }, (_, i) => i ? `<span style="top:${i * HP}px">${H0 + i}:00</span>` : '').join('')}</div>
         ${days.map(i => `<div class="dcol" data-day="${d0 + i}" style="height:${(H1 - H0) * HP}px">${cols(i).map(evHtml).join('')}</div>`).join('')}
       </div></div>
-      <div class="legend"><span><i style="background:hsl(210 80% 85%);border-left:3px solid hsl(210 60% 45%)"></i>● Präsenzpflicht</span><span><i style="background:hsl(210 60% 94%);border-left:3px dotted hsl(210 60% 45%)"></i>keine Pflicht</span><span>? = Pflicht unklar</span><span><i style="outline:2px solid var(--bad)"></i>Pflichttermine überschneiden sich</span><span><i style="outline:2px dashed var(--warn)"></i>möglicher Konflikt</span><span>✦ = neu/geändert</span></div>
+      <div class="legend"><span><i style="background:hsl(210 80% 85%);border-left:3px solid hsl(210 60% 45%)"></i>● Präsenzpflicht</span><span><i style="background:hsl(210 60% 94%);border-left:3px dotted hsl(210 60% 45%)"></i>keine Pflicht</span><span>? = Pflicht unklar</span><span><i style="outline:2px solid var(--bad)"></i>Pflichttermine überschneiden sich</span><span><i style="outline:2px dashed var(--warn)"></i>möglicher Konflikt</span><span>✦ = neu/geändert</span><span>📝 = To-do zum Nacharbeiten (Termin gedrückt halten oder Rechtsklick)</span></div>
       ${offeneTermine(an)}`;
   }
 
@@ -1733,6 +1743,81 @@
     line.style.top = `${(t - wk.dataset.h0 * 60) * wk.dataset.hp / 60}px`;
   }
   setInterval(updNow, 60000);
+
+  // ---------- To-dos: verpasste Termine zum Nacharbeiten und eigene Aufgaben ----------
+  const evKey = (kurs, d, s) => `${kurs}|${d}|${s}`;
+  const todoOf = key => S.todos.find(t => t.ev && evKey(t.ev.kurs, t.ev.d, t.ev.s) === key);
+  const todoId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let wochenEv = new Map(), todoModus = false, tdErlAuf = false;
+  const tdNotizAuf = new Set(); // aufgeklappte, noch leere Notizfelder
+  // Termin als To-do markieren bzw. Markierung wieder entfernen (mit Notiz bleibt es stehen, löschen dann unter To-dos)
+  function evTodo(key) {
+    const td = todoOf(key);
+    if (td) { if (td.n) return; S.todos = S.todos.filter(t => t !== td); }
+    else {
+      const x = wochenEv.get(key); if (!x) return;
+      S.todos.push({ id: todoId(), n: '', done: false, ev: { mod: x.id, titel: M[x.id].titel, kurs: x.k.id, typ: x.k.typ, d: x.d, s: x.s, e: x.e } });
+    }
+    save(); renderSemester();
+  }
+  function semTodos(an) {
+    const offen = S.todos.filter(t => !t.done), erledigt = S.todos.filter(t => t.done);
+    // eigene To-dos oben, markierte Termine nach Datum
+    const ord = arr => [...arr.filter(t => !t.ev), ...arr.filter(t => t.ev).sort((a, b) => a.ev.d - b.ev.d || a.ev.s - b.ev.s)];
+    const item = t => {
+      const h = t.ev && an.hue[t.ev.mod] != null ? an.hue[t.ev.mod] : null;
+      const kopf = t.ev
+        ? `<span class="td-t"><b>${esc(t.ev.typ)} ${esc(M[t.ev.mod] ? M[t.ev.mod].titel : t.ev.titel)}</b> <button class="link-btn" data-tdgo="${t.id}" title="Im Stundenplan zeigen">${WD[dateOf(t.ev.d).getDay()]} ${ddmm(dateOf(t.ev.d))} ${hm(t.ev.s)}–${hm(t.ev.e)}</button></span>`
+        : `<input class="td-t" data-tdtext="${t.id}" value="${esc(t.t)}" aria-label="To-do">`;
+      const notiz = t.n || tdNotizAuf.has(t.id);
+      return `<div class="td ${t.done ? 'done' : ''}"${h != null ? ` style="--h:${h}"` : ''}>
+        <div class="td-head"><input type="checkbox" data-tddone="${t.id}" ${t.done ? 'checked' : ''} title="${t.done ? 'Wieder als offen markieren' : 'Erledigt'}">${kopf}
+          ${notiz ? '' : `<button class="btn small" data-tdnotiz="${t.id}">+ Notiz</button>`}
+          <button class="icon-btn" data-tdrm="${t.id}" title="To-do löschen">×</button></div>
+        ${notiz ? `<textarea class="td-n" data-tdn="${t.id}" rows="2" placeholder="Notiz, z. B. Folien 12–30 anschauen, Aufzeichnung ab Min. 40 …">${esc(t.n)}</textarea>` : ''}
+      </div>`;
+    };
+    return `<div class="panel"><h2>To-dos <small>${offen.length} offen${erledigt.length ? ` · ${erledigt.length} erledigt` : ''}</small></h2>
+      <div class="td-add"><input class="search" id="td-neu" placeholder="Neues To-do, z. B. Übungsblatt 2 abgeben …" autocomplete="off"><button class="btn primary" data-tdadd="1">+ Hinzufügen</button></div>
+      ${offen.length ? `<div class="tds">${ord(offen).map(item).join('')}</div>` : '<p class="hint">Nichts offen.</p>'}
+      ${erledigt.length ? `<details class="td-erl" ${tdErlAuf ? 'open' : ''}><summary>${erledigt.length} erledigt</summary><div class="tds">${ord(erledigt).map(item).join('')}</div>
+        <p><button class="link-btn" data-tdclear="1">Erledigte löschen</button></p></details>` : ''}
+      <p class="hint">Verpasste Vorlesungen oder Übungen markierst du im Stundenplan: Termin gedrückt halten (am PC Rechtsklick), oder „Antippen markiert als To-do“ einschalten und mehrere nacheinander antippen. Nochmal markieren nimmt es wieder weg, solange keine Notiz dran ist.</p></div>`;
+  }
+  function todoAdd() {
+    const inp = $('td-neu'), t = inp.value.trim(); if (!t) { inp.focus(); return; }
+    S.todos.push({ id: todoId(), t, n: '', done: false }); save(); renderSemester(); $('td-neu').focus();
+  }
+  // Gedrückt halten (Touch/Maus) bzw. Rechtsklick auf einen Termin
+  let lpTimer = null, lpPos = null, lpZuletzt = 0;
+  const lpStop = () => { clearTimeout(lpTimer); lpTimer = null; };
+  const vs = $('view-semester');
+  vs.addEventListener('pointerdown', e => {
+    const el = e.target.closest('.ev[data-ev]'); lpStop(); if (!el || e.button !== 0) return;
+    lpPos = [e.clientX, e.clientY];
+    lpTimer = setTimeout(() => { lpTimer = null; lpZuletzt = Date.now(); if (navigator.vibrate) navigator.vibrate(20); evTodo(el.dataset.ev); }, 450);
+  });
+  vs.addEventListener('pointermove', e => { if (lpTimer && Math.hypot(e.clientX - lpPos[0], e.clientY - lpPos[1]) > 8) lpStop(); });
+  vs.addEventListener('pointerup', lpStop);
+  vs.addEventListener('pointercancel', lpStop);
+  vs.addEventListener('contextmenu', e => {
+    const el = e.target.closest('.ev[data-ev]'); if (!el) return;
+    e.preventDefault(); lpStop();
+    if (Date.now() - lpZuletzt < 1000) return; // schon durch langes Drücken ausgelöst
+    lpZuletzt = Date.now(); evTodo(el.dataset.ev);
+  });
+  vs.addEventListener('click', e => {
+    const el = e.target.closest('.ev[data-ev]'); if (!el) return;
+    if (Date.now() - lpZuletzt < 600) { e.preventDefault(); e.stopPropagation(); }
+    else if (todoModus && !e.target.closest('a')) evTodo(el.dataset.ev);
+  }, true);
+  vs.addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('td-erl')) tdErlAuf = e.target.open; }, true);
+  vs.addEventListener('keydown', e => { if (e.target.id === 'td-neu' && e.key === 'Enter') { e.preventDefault(); todoAdd(); } });
+  let tdTimer = null;
+  vs.addEventListener('input', e => {
+    const id = e.target.dataset.tdn, t = id && S.todos.find(x => x.id === id); if (!t) return;
+    t.n = e.target.value; clearTimeout(tdTimer); tdTimer = setTimeout(save, 600);
+  });
 
   // Prüfungskalender
   function semExams(an) {
@@ -1783,12 +1868,29 @@
     if (wk) { S.semWoche = wk.dataset.wk === 'heute' ? null : Number(wk.dataset.wk); save(); renderSemester(); }
     else if (rf) refresh(rf.dataset.refresh);
     else if (gs) { for (const id of semMods().keys()) S.semSnap[id] = modSnap(id); semMsg = null; save(); renderSemester(); }
+    else if (e.target.closest('[data-tdadd]')) todoAdd();
+    else if (e.target.closest('[data-tdclear]')) { S.todos = S.todos.filter(t => !t.done); save(); renderSemester(); }
+    else {
+      const b = e.target.closest('[data-tdrm], [data-tdnotiz], [data-tdgo]'); if (!b) return;
+      const d = b.dataset, t = S.todos.find(x => x.id === (d.tdrm || d.tdnotiz || d.tdgo)); if (!t) return;
+      if (d.tdrm) { S.todos = S.todos.filter(x => x !== t); tdNotizAuf.delete(t.id); save(); renderSemester(); }
+      else if (d.tdnotiz) { tdNotizAuf.add(t.id); renderSemester(); const ta = document.querySelector(`[data-tdn="${t.id}"]`); if (ta) ta.focus(); }
+      else { S.semView = 'stunden'; S.semWoche = Math.floor((t.ev.d + (DAY0.getDay() + 6) % 7) / 7); save(); renderSemester(); }
+    }
   });
   $('view-semester').addEventListener('change', e => {
     const t = e.target, d = t.dataset;
     if (d.kwahl) { if (t.value === '') delete S.kursWahl[d.kwahl]; else S.kursWahl[d.kwahl] = Number(t.value); }
     else if (d.kursan) { if (t.checked) delete S.kursAus[d.kursan]; else S.kursAus[d.kursan] = true; }
     else if (t.id === 'sem-nurpf') S.nurPflicht = t.checked;
+    else if (t.id === 'sem-todomodus') { todoModus = t.checked; renderSemester(); return; }
+    else if (d.tddone || d.tdtext) {
+      const td = S.todos.find(x => x.id === (d.tddone || d.tdtext)); if (!td) return;
+      if (d.tddone) td.done = t.checked;
+      else if (t.value.trim()) td.t = t.value.trim();
+      else S.todos = S.todos.filter(x => x !== td);
+    }
+    else if (d.tdn) { clearTimeout(tdTimer); save(); return; }
     else return;
     save(); renderSemester();
   });

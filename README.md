@@ -104,6 +104,7 @@ Für das laufende Semester sind alle Lehrveranstaltungen mit Terminen und alle b
   - Rot umrandet: Zwei Pflichttermine überschneiden sich. Das steht oben auch als Warnung.
   - Gelb gestrichelt: Ein Pflichttermin überschneidet sich mit einem Termin, dessen Pflicht unklar ist.
 - **Prüfungen:** Monatskalender und Liste mit Uhrzeit, Anmeldezeitraum und Prüfer. Module ohne veröffentlichten Termin stehen mit „kein Termin bekannt“ in der Liste. Gewarnt wird bei zwei Prüfungen am selben Tag bzw. bei zeitlicher Überschneidung.
+- **To-dos:** Verpasste Vorlesungen oder Übungen zum Nacharbeiten. Im Stundenplan einen Termin gedrückt halten (am PC Rechtsklick), dann ist er gestreift und mit 📝 markiert. Mit „Antippen markiert als To-do“ markierst du mehrere hintereinander. Unter „To-dos“ stehen die markierten Termine nach Datum, dazu eigene Aufgaben. Zu jedem To-do kannst du eine Notiz schreiben. Erledigte werden abgehakt und eingeklappt. Die To-dos stehen auch in der Plan-Datei.
 - **Aktualisieren & Änderungen:**
   - „↻ Prüfungstermine aktualisieren“ (unter „Prüfungen“) und „↻ Termine aktualisieren“ (im Stundenplan, nur für deine Module) holen den aktuellen Stand aus TUMonline. Danach siehst du die Änderungen oder „Keine Änderungen“.
   - Alles, was sich seit deinem letzten Stand geändert hat, ist mit ✦ markiert und oben zusammengefasst. Das gilt auch für Änderungen, die die Automatik im Hintergrund geholt hat. Neu sind etwa neue oder verschobene Prüfungen sowie neue oder geänderte Termine.
