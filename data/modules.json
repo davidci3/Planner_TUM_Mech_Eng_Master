@@ -1,7 +1,7 @@
 {
  "studiengang": "M.Sc. Maschinenwesen (TUM School of Engineering and Design)",
  "spo": "[20241] Maschinenwesen",
- "stand": "2026-10-19",
+ "stand": "2026-10-26",
  "studienjahr": "2026/27",
  "quellen": [
   {
@@ -10824,6 +10824,32 @@
    "grundlageFuer": []
   },
   {
+   "id": "4474836",
+   "kennung": "SZ04109",
+   "titel": "Englisch - The Art of Editing: Pushing Your Writing Further C1",
+   "titelEn": "",
+   "ects": 3,
+   "turnus": "?",
+   "sprache": "?",
+   "spracheRaw": "",
+   "lehrstuhl": "",
+   "verantwortlich": "",
+   "praesenz": "",
+   "inhalt": "",
+   "lernziele": "",
+   "voraussetzungen": "",
+   "pruefung": "",
+   "bereiche": [
+    "UE"
+   ],
+   "pfade": [
+    "Überfachliche Ergänzung › Angebote des Sprachenzentrums › [SZ0003-04] TUM Sprachenzentrum Englisch"
+   ],
+   "fokus": [],
+   "bautAuf": [],
+   "grundlageFuer": []
+  },
+  {
    "id": "754995",
    "kennung": "SZ0442",
    "titel": "Englisch - The Science of Science Fiction C1",
@@ -11657,6 +11683,32 @@
    "bautAuf": [],
    "grundlageFuer": [],
    "vorausWeich": true
+  },
+  {
+   "id": "4994013",
+   "kennung": "SOT99008",
+   "titel": "EuroTeQ Collider. Enhancing Connections for Sustainable Futures",
+   "titelEn": "",
+   "ects": 6,
+   "turnus": "?",
+   "sprache": "?",
+   "spracheRaw": "",
+   "lehrstuhl": "",
+   "verantwortlich": "",
+   "praesenz": "",
+   "inhalt": "",
+   "lernziele": "",
+   "voraussetzungen": "",
+   "pruefung": "",
+   "bereiche": [
+    "UE"
+   ],
+   "pfade": [
+    "Überfachliche Ergänzung › Angebote Kontextstudium › Sustainable Development"
+   ],
+   "fokus": [],
+   "bautAuf": [],
+   "grundlageFuer": []
   },
   {
    "id": "463419",
@@ -25269,11 +25321,11 @@
    "spracheRaw": "Deutsch",
    "lehrstuhl": "Lehrstuhl für Fördertechnik Materialfluss Logistik (Prof. Fottner)",
    "verantwortlich": "Johannes Fottner",
-   "praesenz": "60",
-   "inhalt": "tbd\n\nALT: Das Praktikum Logistik besteht aus derzeit sieben Terminen, in denen unterschiedlichste Aspekte der Logistik an konkreten Beispielen unterrichtet werden:\n\n1. Termin: Kommissionierung\nEinflussgrößen und Kenngrößen der Kommissionierung, Klassifizierung von Kommissioniersystemen, Prozessanalyse, Optimierungsmöglichkeiten, direkte Umsetzung zielführender Maßnahmen in einem realen Kommissionierbereich, Leistungssteigerung;\n2. Termin: Radio Frequency IDentification (RFID)\nKennenlernen der RFID-Technologie, RFID in der Logistik, Versuche im Testumfeld am Institut (RFID Anwenderzentrum München);\n3./4. Termin: Lean Logistics \nPlanspiel \"Optimierung Kugelschreiberfertigung\", Methoden und Ansätze der schlanken Logistik, Prozesssteuerung (PUSH- / PULL-Systeme), Optimierung Bestände und Durchlaufzeit;\n5. Termin: Prozessanalyse\nWertstromdesign zur Gestaltung einer realen …",
-   "lernziele": "tbd\n\nALT: Nach der Teilnahme an der Modulveranstaltung sind die Studierenden in der Lage, RFID als Technologie und die daraus resultierenden Möglichkeiten für die Logistik zu verstehen. Daneben lernen Sie die Funktionen der Kommissionierung kennen.\nFerner üben die Studenten das Wertstromdesign und sind in der Lage, analytische Methoden zur Pufferdimensionierung anzuwenden. Im Praktikum lernen Sie operative logistische Prozesse zu analysieren und gängige Formen der Prozesssteuerung zu unterscheiden und zu bewerten.",
-   "voraussetzungen": "Erfolgreiche Teilnahme im Modul \"Materialfluss und Logistik\" (MW0067)",
-   "pruefung": "tbd\n\nALT: Die Praktikumsteilnehmer müssen an jedem der Praktikumstermine anwesend sein. Bei Krankheit ist ein einmaliges Fehlen erlaubt. In sieben schriftlichen Kurztests werden die vermittelten Inhalte der einzelnen Termine geprüft.",
+   "praesenz": "75",
+   "inhalt": "Das Praktikum Logistik besteht aus neun Themenkomplexen.\n\n1. Einführung\nErklärung der Grundlagen logistischer Prozesse, Einführung in das Fallbeispiel\n\n2. Prozesse in der Logistik\nLogistische Prozesse im Produktionssystem, Methoden der Prozessaufnahme, Wertstromanalyse mit Symbolik und Kennzahlen, Methoden der Materialflussanalyse & -modellierung, Systemplanung und Dimensionierung von Lager- und Fördertechnik, Bewertung von Varianten anhand von Kennzahlen\n\n3. ERP/EWM/WMS\nAbbildung von Prozessen in IT-Systemen, Abgrenzung verschiedener Software-Lösungen, Konzeption und Aufbau eines WMS bis zum Auslagerauftrag\n\n4. Robotik in der Logistik\nGrundlagen mobiler Roboter und typische Einsatzbereiche in der Produktionslogistik, Überblick über Sensoren und Aktoren von Robotern, Funktionsprinzipien von Linienverfolgung, QR-Code-Erkennung und Hinderniserkennung, Einbindung des Roboters in ein …",
+   "lernziele": "Nach der Teilnahme am Modul sind die Studierenden in der Lage, \n- sich an die Ziele der Logistik und Grundlagen logistischer Systeme zu erinnern.\n- logistische Grundprozesse und das Zusammenspiel von Material- und Informationsfluss in einem Produktionssystem zu beschreiben.\n- Material- und Informationsflüsse anhand von Kennzahlen, Materialflussmatrix und Diagrammen hinsichtlich Verschwendung und Optimierungspotenzial zu analysieren.\n- die Bestandteile technischer Logistiklösungen für Lager- und Fördertechnik hinsichtlich Funktion, Automatisierungsgrad und Leistung zu charakterisieren.\n- den …",
+   "voraussetzungen": "„Materialfluss und Logistik“ (MW1921) – empfohlen",
+   "pruefung": "Die Modulprüfung erfolgt in Form von sechs schriftlichen Kurztests (Bearbeitungsdauer jeweils 10 min, keine Hilfsmittel) und sechs Abgaben (Laborleistungen) im Anschluss an die Termine. Darin wird anhand von Verständnisfragen, Wissensfragen und kleinen Rechenaufgaben und der während der Bearbeitung der Aufgaben erreichten Lösung überprüft, ob die Studierenden beispielsweise logistische Grundprozesse und das Zusammenspiel von Material- und Informationsfluss in einem Produktionssystem …",
    "bereiche": [
     "HP"
    ],
@@ -25285,7 +25337,7 @@
    ],
    "bautAuf": [],
    "grundlageFuer": [],
-   "vorausWeich": false
+   "vorausWeich": true
   },
   {
    "id": "261969",
