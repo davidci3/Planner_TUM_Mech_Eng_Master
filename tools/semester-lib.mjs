@@ -38,11 +38,18 @@ function praesenz(typ, text) {
   return ['unklar', 'Keine Angabe gefunden'];
 }
 
+// ---------- Wartung ----------
+// TUMonline antwortet während einer Wartung mit Status 200 und einer HTML-Seite statt JSON
+export const istWartungsseite = text => /^\s*<[\s\S]*?<title>[^<]*(wartung|maintenance)/i.test(text);
+const WARTUNG_FEHLER = 'TUMonline ist wegen Wartung nicht verfügbar (siehe https://status.it.tum.de), der alte Stand bleibt.';
+
 // ---------- Welches Semester? ----------
 // Das laufende Semester, ab 6 Wochen vor Vorlesungsbeginn schon das nächste (dann wird es geplant)
 export async function semesterAuto() {
   const r = await fetch(`${R}/slc.lib.tm/semesters/student`, { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } });
-  const list = (await r.json()).semesters || [];
+  const text = await r.text();
+  if (istWartungsseite(text)) throw new Error(WARTUNG_FEHLER);
+  const list = JSON.parse(text).semesters || [];
   const stichtag = new Date(Date.now() + 42 * 864e5).toISOString().slice(0, 10);
   const s = list.filter(x => x.startOfAcademicSemester.value <= stichtag).sort((a, b) => b.startOfAcademicSemester.value.localeCompare(a.startOfAcademicSemester.value))[0];
   if (!s) throw new Error('Kein passendes Semester in TUMonline gefunden');
@@ -75,14 +82,21 @@ export async function createSemester({ sem, dir, cachePath = null, raeume = [], 
   const saveCache = () => { if (cachePath) fs.writeFileSync(cachePath, JSON.stringify(cache)); };
   async function get(url, { noCache } = {}) {
     if (!noCache && cache[url]) return cache[url];
+    let wartung = false;
     for (let t = 0; t < 4; t++) {
       try {
         const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } });
-        if (r.ok) { const j = await r.json(); if (cachePath) cache[url] = j; if (++fetched % 200 === 0) { log(fetched + ' Anfragen'); saveCache(); } return j; }
+        if (r.ok) {
+          const text = await r.text();
+          wartung = istWartungsseite(text);
+          if (!wartung) { const j = JSON.parse(text); if (cachePath) cache[url] = j; if (++fetched % 200 === 0) { log(fetched + ' Anfragen'); saveCache(); } return j; }
+        }
         if (r.status === 404) { if (cachePath) cache[url] = {}; return {}; }
       } catch {}
       await new Promise(r => setTimeout(r, 1500 * (t + 1)));
     }
+    // Abbrechen statt {} liefern: leere Antworten sähen aus wie „Modul ohne Kurse“ und würden die Daten überschreiben
+    if (wartung) throw new Error(WARTUNG_FEHLER);
     return {};
   }
 

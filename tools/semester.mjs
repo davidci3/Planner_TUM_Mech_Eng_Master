@@ -29,6 +29,9 @@ if (flag('--nur-pruefungen') && alt && String(alt.semesterId) === String(SEM)) {
   const res = { ...sem.meta, typen: {}, raeume: [], module: {} };
   mergeKurse(res, kurse, sem, true);
   mergeExams(res, await sem.fetchExams());
+  // Plausibilität: ein halb geladener Lauf (Störung bei TUMonline) darf den alten Stand nicht ersetzen
+  const mitKursen = d => Object.values(d.module).filter(x => x.kurse.length).length;
+  if (alt && alt.semesterId === res.semesterId && mitKursen(res) < mitKursen(alt) * 0.8) throw new Error(`Nur ${mitKursen(res)} statt ${mitKursen(alt)} Module mit Kursen geladen. TUMonline war vermutlich nicht vollständig erreichbar, der alte Stand bleibt.`);
   writeSemesterFile(DIR, res);
   const v = Object.values(res.module);
   log(`${res.label}: ${v.filter(x => x.kurse.length).length} Module mit Kursen, ${v.filter(x => x.pruefungen).length} Module mit Prüfungsterminen.`);

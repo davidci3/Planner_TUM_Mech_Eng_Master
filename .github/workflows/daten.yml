@@ -29,9 +29,15 @@ jobs:
         with:
           node-version: 22
 
+      # Bei Wartung oder Ausfall von TUMonline die TUMonline-Schritte überspringen, ohne dass der Lauf fehlschlägt.
+      # Fehler-Mail nur, wenn der Daten-Stand zu alt wird oder die Schnittstelle sich geändert hat.
+      - name: TUMonline erreichbar?
+        id: tumonline
+        run: node tools/tumonline-check.mjs data
+
       # Studienplan: montags und bei manuellem Start (schont TUMonline)
       - name: Studienplan (Katalog) neu laden
-        if: github.event_name == 'schedule' || inputs.katalog
+        if: steps.tumonline.outputs.erreichbar == 'true' && (github.event_name == 'schedule' || inputs.katalog)
         run: |
           if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%u)" != "1" ]; then echo "Nur montags."; exit 0; fi
           node tools/katalog.mjs data
@@ -42,6 +48,7 @@ jobs:
         run: node tools/examstats.mjs data
 
       - name: Termine und Prüfungen des aktuellen Semesters
+        if: steps.tumonline.outputs.erreichbar == 'true'
         run: node tools/semester.mjs auto data
 
       - name: Änderungen committen
