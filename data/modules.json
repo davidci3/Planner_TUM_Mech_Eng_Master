@@ -1,7 +1,7 @@
 {
  "studiengang": "M.Sc. Maschinenwesen (TUM School of Engineering and Design)",
  "spo": "[20241] Maschinenwesen",
- "stand": "2026-11-02",
+ "stand": "2026-11-16",
  "studienjahr": "2026/27",
  "quellen": [
   {
@@ -15824,7 +15824,7 @@
    "titel": "Industrielle Anwendung von Hochleistungsgetrieben",
    "titelEn": "Industrial Application of High-Performance Gearboxes",
    "ects": 3,
-   "turnus": "WiSe+SoSe",
+   "turnus": "WiSe",
    "sprache": "de",
    "spracheRaw": "Deutsch",
    "lehrstuhl": "Lehrstuhl für Maschinenelemente (Prof. Stahl)",
@@ -29194,32 +29194,6 @@
    "bautAuf": [],
    "grundlageFuer": [],
    "vorausWeich": true
-  },
-  {
-   "id": "3583946",
-   "kennung": "ED100043",
-   "titel": "Schlüsselkompetenzen für studentische Initiativen (2 ECTS)",
-   "titelEn": "",
-   "ects": 2,
-   "turnus": "?",
-   "sprache": "?",
-   "spracheRaw": "",
-   "lehrstuhl": "",
-   "verantwortlich": "",
-   "praesenz": "",
-   "inhalt": "",
-   "lernziele": "",
-   "voraussetzungen": "",
-   "pruefung": "",
-   "bereiche": [
-    "UE"
-   ],
-   "pfade": [
-    "Überfachliche Ergänzung › Angebote Zentrum für Schlüsselkompetenzen"
-   ],
-   "fokus": [],
-   "bautAuf": [],
-   "grundlageFuer": []
   },
   {
    "id": "3051356",
