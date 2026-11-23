@@ -1,7 +1,7 @@
 {
  "studiengang": "M.Sc. Maschinenwesen (TUM School of Engineering and Design)",
  "spo": "[20241] Maschinenwesen",
- "stand": "2026-11-16",
+ "stand": "2026-11-23",
  "studienjahr": "2026/27",
  "quellen": [
   {
@@ -8344,7 +8344,7 @@
    "id": "3037973",
    "kennung": "EI78076",
    "titel": "Dodo Alive! - Resurrecting the Dodo with Robotics and AI: Hardware & Design",
-   "titelEn": "Dodo alive - Resurrecting the Dodo with Robotics and AI: Hardware & Design",
+   "titelEn": "Dodo alive! - Resurrecting the Dodo with Robotics and AI: Hardware & Design",
    "ects": 6,
    "turnus": "WiSe+SoSe",
    "sprache": "en",
@@ -26049,8 +26049,8 @@
   {
    "id": "4382048",
    "kennung": "ED160050",
-   "titel": "Praxisseminar Experimentelle Schwingungsanalyse ",
-   "titelEn": "",
+   "titel": "Praxisseminar Experimentelle Schwingungsanalyse",
+   "titelEn": "Practical Seminar Experimental Vibration Analysis",
    "ects": 4,
    "turnus": "SoSe",
    "sprache": "en",
